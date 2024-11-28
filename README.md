@@ -67,7 +67,7 @@
 ## TODO List
 
 - [ ] Research libp2p documentation and examples.
-- [ ] Set up the project repository and initialize with Cargo.
+- [x] Set up the project repository and initialize with Cargo.
 - [ ] Implement basic peer-to-peer connection.
 - [ ] Test peer-to-peer messaging functionality.
 - [ ] Design initial UI/UX mockups for the chat interface.
