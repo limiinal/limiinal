@@ -9,6 +9,9 @@
 
 - List of core features (essential).
 - Optional/nice-to-have features (stretch goals).
+  - Hole Punching [docs](https://docs.rs/libp2p/latest/libp2p/tutorials/hole_punching/index.html)
+  - Send pings encrypted with noise or alternatives
+  - Light and dark mode gui
 
 ## Tech Stack
 
@@ -35,10 +38,12 @@
 
 - High-level tasks for each milestone.
 
-  - Important Concepts  
-     Transports [docs](https://docs.libp2p.io/concepts/transports/overview/)  
-     DoS Mitigation [docs](https://docs.libp2p.io/concepts/security/dos-mitigation/#incorporating-dos-mitigation-from-the-start)  
-     Swam [docs](https://docs.rs/libp2p/latest/libp2p/swarm/index.html)
+  - Important Concepts
+
+    - Transports [docs](https://docs.libp2p.io/concepts/transports/overview/)
+    - DoS Mitigation [docs](https://docs.libp2p.io/concepts/security/dos-mitigation/#incorporating-dos-mitigation-from-the-start)
+    - Swam [docs](https://docs.rs/libp2p/latest/libp2p/swarm/index.html)
+    - PeerId to identify other nodes [docs](https://docs.rs/libp2p/latest/libp2p/struct.PeerId.html)
 
   - Handling Input
   - Sending Messages
@@ -52,7 +57,12 @@
 ## References and Resources
 
 - Documentation links (e.g., libp2p, Rust docs).
-- Other software used.
+- [Async Rust Book](https://rust-lang.github.io/async-book/)
+- [libp2p Rust Docs](https://docs.rs/libp2p/latest/libp2p/tutorials/index.html#modules)
+- [libp2p Docs](https://docs.libp2p.io/)
+- [libp2p Main Site](https://libp2p.io/)
+- **[Really useful getting started with rust rust p2p guide](https://docs.rs/libp2p/latest/libp2p/tutorials/ping/index.html)**
+- [egui for gui](https://github.com/emilk/egui)
 
 ## TODO List
 
