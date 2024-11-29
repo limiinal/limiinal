@@ -8,21 +8,26 @@
 ## Features We Want
 
 - List of core features (essential).
-- Optional/nice-to-have features (stretch goals).
   - Hole Punching [docs](https://docs.rs/libp2p/latest/libp2p/tutorials/hole_punching/index.html)
+- Optional/nice-to-have features (stretch goals).
   - Send pings encrypted with noise or alternatives
   - Light and dark mode gui
 
 ## Tech Stack
 
 - Rust Programming Language
-- Libp2p lib
-- Egui for a cross-platform web-comptabile interface
+- libp2p for secure peer to peer networking
+- iced-rs
 
 ## Design and Architecture
 
 - High-level diagrams or flowcharts (can be added later).
 - How things work together
+
+- Early UI design idea:
+
+![image](https://github.com/user-attachments/assets/e1f64535-618a-43bb-a63a-690bdc580641)
+
 
 ## To Do List
 
@@ -42,8 +47,9 @@
 
     - Transports [docs](https://docs.libp2p.io/concepts/transports/overview/)
     - DoS Mitigation [docs](https://docs.libp2p.io/concepts/security/dos-mitigation/#incorporating-dos-mitigation-from-the-start)
-    - Swam [docs](https://docs.rs/libp2p/latest/libp2p/swarm/index.html)
+    - Swarm [docs](https://docs.rs/libp2p/latest/libp2p/swarm/index.html)
     - PeerId to identify other nodes [docs](https://docs.rs/libp2p/latest/libp2p/struct.PeerId.html)
+    - Holepunching [example](https://github.com/libp2p/rust-libp2p/tree/master/examples/dcutr)
 
   - Handling Input
   - Sending Messages
@@ -62,11 +68,11 @@
 - [libp2p Docs](https://docs.libp2p.io/)
 - [libp2p Main Site](https://libp2p.io/)
 - **[Really useful getting started with rust rust p2p guide](https://docs.rs/libp2p/latest/libp2p/tutorials/ping/index.html)**
-- [egui for gui](https://github.com/emilk/egui)
+- [iced-rs for gui](https://book.iced.rs/)
 
 ## TODO List
 
-- [ ] Research libp2p documentation and examples.
+- [x] Research libp2p documentation and examples.
 - [x] Set up the project repository and initialize with Cargo.
 - [ ] Implement basic peer-to-peer connection.
 - [ ] Test peer-to-peer messaging functionality.

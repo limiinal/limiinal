@@ -5,13 +5,33 @@ use iced::{Element, Length, Color, Theme};
 
 
 #[derive(Default)]
-pub struct AppCore { }
+pub struct AppCore {
+    window_width: f32,
+    window_height: f32,
+ }
 
 #[derive(Debug, Clone)]
-pub struct Message {}
+pub enum Message {
+    Resize(f32, f32),
+}
 
 impl AppCore {
-    pub fn update(&mut self, _message: Message) {
+
+    pub fn new(initial_width: f32, initial_height: f32) -> Self {
+        Self {
+            window_width: initial_width,
+            window_height: initial_height,
+        }
+    }
+
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::Resize(width, height) => {
+                self.window_width = width;
+                self.window_height = height;
+                println!("Resized! New width: {}", self.window_width);
+            }
+        }
     }
 
     pub fn view(&self) -> Column<Message> {
