@@ -8,8 +8,8 @@
 ## Features We Want
 
 - List of core features (essential).
-- Optional/nice-to-have features (stretch goals).
   - Hole Punching [docs](https://docs.rs/libp2p/latest/libp2p/tutorials/hole_punching/index.html)
+- Optional/nice-to-have features (stretch goals).
   - Send pings encrypted with noise or alternatives
   - Light and dark mode gui
 
@@ -49,6 +49,7 @@
     - DoS Mitigation [docs](https://docs.libp2p.io/concepts/security/dos-mitigation/#incorporating-dos-mitigation-from-the-start)
     - Swarm [docs](https://docs.rs/libp2p/latest/libp2p/swarm/index.html)
     - PeerId to identify other nodes [docs](https://docs.rs/libp2p/latest/libp2p/struct.PeerId.html)
+    - Holepunching [example](https://github.com/libp2p/rust-libp2p/tree/master/examples/dcutr)
 
   - Handling Input
   - Sending Messages
