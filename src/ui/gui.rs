@@ -101,6 +101,7 @@ impl Default for LogoFloatView {
             name: String::from("Logo"),
             width: Length::Fixed(100.0),
             height: Length::Fixed(100.0),
+            image_path: "../assets/images/TransparentSmall.png".to_string(),
         }
     }
 }
