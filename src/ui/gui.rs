@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use iced::widget::{column, container, row, Text, text, Column};
-use iced::{Element, Length, Color, Theme};
-use iced::widget::image;
+use iced::widget::{column, container, row, image, button, text, svg,};
+use iced::widget::{Column, Space,};
+use iced::{Element, Length, Color, Theme, Padding,};
 use iced::widget::image::Handle;
 
 
@@ -19,6 +19,11 @@ pub struct AppCore {
 #[derive(Debug, Clone)]
 pub enum Message {
     Resize(f32, f32),
+
+    // Navigation events
+    NavToHome,
+    NavToChat,
+    NavToSettings,
 }
 
 impl AppCore {
@@ -29,6 +34,15 @@ impl AppCore {
                 self.window_width = width;
                 self.window_height = height;
                 println!("Resized! New width: {}", self.window_width);
+            }
+            Message::NavToHome => {
+                todo!()
+            }
+            Message::NavToChat => {
+                todo!()
+            }
+            Message::NavToSettings => {
+                todo!()
             }
         }
 
@@ -124,7 +138,43 @@ struct NavFloatView {
 
 impl NavFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        container(self.name.as_str())
+        container(
+            column![
+                button(
+                    svg::Svg::from_path("./assets/icons/home.svg")
+                )
+                .on_press(Message::NavToHome)
+                .style(|_, _| button::Style {
+                    background: None,
+                    ..button::Style::default()
+                }),
+                Space::with_height(Length::Fill),
+                button(
+                    svg::Svg::from_path("./assets/icons/chat.svg")
+                )
+                .on_press(Message::NavToChat)
+                .style(|_, _| button::Style {
+                    //background: None,
+                    ..button::Style::default()
+                }),
+                Space::with_height(Length::Fill),
+                button(
+                    svg::Svg::from_path("./assets/icons/setting.svg")
+                )
+                .on_press(Message::NavToSettings)
+                .style(|_, _| button::Style {
+                    background: None,
+                    ..button::Style::default()
+                }),
+            ]
+        )
+            .center(Length::Fill)
+            .padding(Padding {
+                top: 20.0,
+                left: 10.0,
+                right: 10.0,
+                bottom: 20.0,
+            })
         //container("asdjoad")
             .width(self.width)
             .height(self.height)
