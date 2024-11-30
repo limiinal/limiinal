@@ -2,6 +2,8 @@
 
 use iced::widget::{column, container, row, Text, text, Column};
 use iced::{Element, Length, Color, Theme};
+use iced::widget::image;
+use iced::widget::image::Handle;
 
 
 #[derive(Default)]
@@ -66,11 +68,16 @@ struct LogoFloatView {
     pub name: String,
     pub width: Length,
     pub height: Length,
+    pub image_path: String,
 }
 
 impl LogoFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        container(self.name.as_str())
+        let logo_image = image(Handle::from_path(&self.image_path))
+            .width(self.width)
+            .height(self.height);
+        
+        container(logo_image)
             .width(self.width)
             .height(self.height)
             .style(LogoFloatView::style()).into()
@@ -101,6 +108,7 @@ impl Default for LogoFloatView {
             name: String::from("Logo"),
             width: Length::Fixed(100.0),
             height: Length::Fixed(100.0),
+            image_path: "/Users/thomas/Desktop/Projects/Limiinal/limiinal/assets/images/TransparentSmall.png".to_string(),
         }
     }
 }
