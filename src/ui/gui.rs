@@ -5,8 +5,12 @@ use iced::widget::{Column, Space, button::Status};
 use iced::{Element, Length, Color, Theme, Padding, Border, Background};
 use iced::border::Radius;
 use iced::widget::image::Handle;
-
 use log::info;
+use iced::widget::TextInput;
+use iced::widget::text_input;
+use iced::Alignment;
+
+
 
 #[derive(Default)]
 pub struct AppCore {
@@ -21,6 +25,7 @@ pub struct AppCore {
 #[derive(Debug, Clone)]
 pub enum Message {
     Resize(f32, f32),
+    ContentChanged(String),
 
     // Navigation events
     NavToHome,
@@ -48,6 +53,10 @@ impl AppCore {
             Message::NavToSettings => {
                 info!("Navigating to Settings");
                 self.nav_float_views.current_active = NavFloatViewButton::Settings;
+            }
+            // This needs to be updated with functionality when a search is entered.
+            Message::ContentChanged(_) => {
+                info!("Content changed to...");
             }
         }
 
@@ -269,14 +278,34 @@ struct MessageListFloatView {
     pub name: String,
     pub width: Length,
     pub height: Length,
+    pub content: String,
 }
 
 impl MessageListFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        container(self.name.as_str())
+        let input: TextInput<'_, Message> = text_input::<Message, iced::theme::Theme, iced::Renderer>("Search messages", "")
+            .on_input(Message::ContentChanged)
+            // Aligns text central
+            .align_x(iced::Alignment::Center)
+            .width(200.0);
+
+        
+        let input_element: Element<'_, Message> = input.into();
+
+        let content_column = Column::new()
+            .align_x(iced::Alignment::End)
+            .padding(10)
+            .push(input_element);
+
+        container(content_column)
             .width(self.width)
             .height(self.height)
-            .style(MessageListFloatView::style()).into()
+            // This is causing search bar to be aligned correctly. 
+            // However it may cause everything in container to be central.
+            // Cant seem to align it any other way. 
+            .align_x(iced::Alignment::Center)
+            .style(MessageListFloatView::style())
+            .into()
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -304,6 +333,7 @@ impl Default for MessageListFloatView {
             name: String::from("MessageList"),
             width: Length::FillPortion(3),
             height: Length::Fill,
+            content: String::from("Search Messages"),
         }
     }
 }
