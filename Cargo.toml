@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iced = { version = "0.13.1", features = ["async-std", "image"] }
+iced = { version = "0.13.1", features = ["async-std", "image", "svg"] }
 
 log = "0.4"
 env_logger = "0.10"
+libp2p-gossipsub = "0.47.0"
+libp2p-mdns = "0.46.0"
+tokio = { version = "1.41.1", features = ["full"] } 
+libp2p = { version = "0.54.1", features = ["tcp", "tls", "dns", "async-std", "noise", "yamux", "websocket", "ping", "macros"] }
+futures = "0.3.31"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
