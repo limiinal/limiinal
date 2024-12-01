@@ -170,10 +170,10 @@ impl NavFloatView {
         )
             .center(Length::Fill)
             .padding(Padding {
-                top: 20.0,
+                top: 25.0,
                 left: 10.0,
                 right: 10.0,
-                bottom: 20.0,
+                bottom: 25.0,
             })
         //container("asdjoad")
             .width(self.width)
