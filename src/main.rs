@@ -22,6 +22,7 @@ async fn main() -> iced::Result {
     Ok(())
 }
 
+// Attempting to make this callable from main
 async fn ping() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt().with_env_filter(EnvFilter::from_default_env()).init();
 
