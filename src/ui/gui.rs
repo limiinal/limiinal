@@ -1,17 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use iced::widget::{column, container, row, image, button, text, svg,};
-use iced::widget::{Column, Space,};
-use iced::{Element, Length, Color, Theme, Padding,};
+use iced::widget::{Column, Space, button::Status};
+use iced::{Element, Length, Color, Theme, Padding, Border, Background};
+use iced::border::Radius;
 use iced::widget::image::Handle;
 
+use log::info;
 
 #[derive(Default)]
 pub struct AppCore {
     window_width: f32,
     window_height: f32,
-    nav_float_views: NavFloatView,
     logo_float_view: LogoFloatView,
+    nav_float_views: NavFloatView,
     message_list_float_view: MessageListFloatView,
     message_float_view: MessageFloatView,
  }
@@ -36,13 +38,16 @@ impl AppCore {
                 println!("Resized! New width: {}", self.window_width);
             }
             Message::NavToHome => {
-                todo!()
+                info!("Navigating to Home");
+                self.nav_float_views.current_active = NavFloatViewButton::Home;
             }
             Message::NavToChat => {
-                todo!()
+                info!("Navigating to Chat");
+                self.nav_float_views.current_active = NavFloatViewButton::Chat;
             }
             Message::NavToSettings => {
-                todo!()
+                info!("Navigating to Settings");
+                self.nav_float_views.current_active = NavFloatViewButton::Settings;
             }
         }
 
@@ -101,14 +106,14 @@ impl LogoFloatView {
         move |_| container::Style {
             background: Some(Color::from_rgb(0.5, 0.5, 0.5).into()),
             text_color: Some(Color::WHITE),
-            border: iced::Border {
-                radius: iced::border::Radius {
+            border: Border {
+                radius: Radius {
                     top_left: 20.0,
                     top_right: 20.0,
                     bottom_left: 20.0,
                     bottom_right: 20.0,
                 },
-                ..iced::Border::default()
+                ..Border::default()
             },
             ..container::Style::default()
         }
@@ -127,13 +132,20 @@ impl Default for LogoFloatView {
     }
 }
 //====== Nav Float View ======//
+#[derive(Debug, PartialEq)]
+enum NavFloatViewButton {
+    Home,
+    Chat,
+    Settings,
+}
+
 struct NavFloatView {
     pub id: i32,
     pub name: String,
     pub home: String,
     pub width: Length,
     pub height: Length,
-    pub active: bool,
+    pub current_active: NavFloatViewButton,
 }
 
 impl NavFloatView {
@@ -143,29 +155,23 @@ impl NavFloatView {
                 button(
                     svg::Svg::from_path("./assets/icons/home.svg")
                 )
+                .padding(15)
                 .on_press(Message::NavToHome)
-                .style(|_, _| button::Style {
-                    background: None,
-                    ..button::Style::default()
-                }),
+                .style(self.button_style(NavFloatViewButton::Home)),
                 Space::with_height(Length::Fill),
                 button(
                     svg::Svg::from_path("./assets/icons/chat.svg")
                 )
+                .padding(15)
                 .on_press(Message::NavToChat)
-                .style(|_, _| button::Style {
-                    //background: None,
-                    ..button::Style::default()
-                }),
+                .style(self.button_style(NavFloatViewButton::Chat)),
                 Space::with_height(Length::Fill),
                 button(
                     svg::Svg::from_path("./assets/icons/setting.svg")
                 )
+                .padding(15)
                 .on_press(Message::NavToSettings)
-                .style(|_, _| button::Style {
-                    background: None,
-                    ..button::Style::default()
-                }),
+                .style(self.button_style(NavFloatViewButton::Settings)),
             ]
         )
             .center(Length::Fill)
@@ -185,16 +191,61 @@ impl NavFloatView {
         move |_| container::Style {
             background: Some(Color::from_rgb(0.4, 0.4, 0.4).into()),
             text_color: Some(Color::WHITE),
-            border: iced::Border {
-                radius: iced::border::Radius {
+            border: Border {
+                radius: Radius {
                     top_left: 20.0,
                     top_right: 20.0,
                     bottom_left: 20.0,
                     bottom_right: 20.0,
                 },
-                ..iced::Border::default()
+                ..Border::default()
             },
             ..container::Style::default()
+        }
+    }
+
+    fn button_style(&self, active: NavFloatViewButton) -> impl Fn(&Theme, Status) -> button::Style + '_ {
+        move |_, status| {
+            let mut background: Option<Background>; 
+            let mut border: Border;
+            match status {
+                Status::Hovered => {
+                    background = Some(Color::from_rgb(0.45, 0.45, 0.45).into());
+                    border = Border {
+                        radius: Radius {
+                            top_left: 20.0,
+                            top_right: 20.0,
+                            bottom_left: 20.0,
+                            bottom_right: 20.0,
+                        },
+                        ..Border::default()
+                    }
+                }
+                _ => {
+                    background = None;
+                    border = Border::default();
+                }
+            };
+
+            // check the active the is current active
+            if active == self.current_active {
+                background = Some(Color::from_rgb(0.5, 0.5, 0.5).into());
+                border = Border {
+                    radius: Radius {
+                        top_left: 20.0,
+                        top_right: 20.0,
+                        bottom_left: 20.0,
+                        bottom_right: 20.0,
+                    },
+                    ..Border::default()
+                }
+            }
+
+            button::Style {
+                background,
+                border,
+                ..button::Style::default()
+            }
         }
     }
 }
@@ -207,7 +258,7 @@ impl Default for NavFloatView {
             home: String::from(""),
             width: Length::Fixed(100.0),
             height: Length::Fixed(300.0),
-            active: false,
+            current_active: NavFloatViewButton::Chat,
         }
     }
 }
@@ -232,14 +283,14 @@ impl MessageListFloatView {
         move |_| container::Style {
             background: Some(Color::from_rgb(0.3, 0.3, 0.3).into()),
             text_color: Some(Color::WHITE),
-            border: iced::Border {
-                radius: iced::border::Radius {
+            border: Border {
+                radius: Radius {
                     top_left: 20.0,
                     top_right: 20.0,
                     bottom_left: 20.0,
                     bottom_right: 20.0,
                 },
-                ..iced::Border::default()
+                ..Border::default()
             },
             ..container::Style::default()
         }
@@ -277,14 +328,14 @@ impl MessageFloatView {
         move |_| container::Style {
             background: Some(Color::from_rgb(0.2, 0.2, 0.2).into()),
             text_color: Some(Color::WHITE),
-            border: iced::Border {
-                radius: iced::border::Radius {
+            border: Border {
+                radius: Radius {
                     top_left: 20.0,
                     top_right: 20.0,
                     bottom_left: 20.0,
                     bottom_right: 20.0,
                 },
-                ..iced::Border::default()
+                ..Border::default()
             },
             ..container::Style::default()
         }
