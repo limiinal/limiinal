@@ -1,15 +1,22 @@
 mod ui;
+mod backend;
 
-use ui::gui::AppCore;
+use ui::gui::AppUI;
+use backend::network::AppCore;
 
-use iced::Theme;
 
-fn main() -> iced::Result {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
     env_logger::init();
 
-    iced::application("Limiinal", AppCore::update, AppCore::view)
-        //.subscription(AppCore::subscribtion)
-        .theme(|_| { Theme::Dark })
-        .run()
+    // set up backend
+    AppCore::new().run().await;
+
+    // set up frontend
+    AppUI::run()?;
+
+
+    Ok(())
 }
 

@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+libp2p = { version = "0.52", features = ["tcp", "tls", "dns", "noise", "yamux", "websocket", "ping", "macros", "tokio"] }
+futures = "0.3.21"
 iced = { version = "0.13.1", features = ["async-std", "image", "svg"] }
+tokio = { version = "1.41.1", features = ["full"] }
 
 log = "0.4"
 env_logger = "0.11.5"

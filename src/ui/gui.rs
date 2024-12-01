@@ -9,7 +9,7 @@ use iced::widget::image::Handle;
 use log::info;
 
 #[derive(Default)]
-pub struct AppCore {
+pub struct AppUI {
     window_width: f32,
     window_height: f32,
     logo_float_view: LogoFloatView,
@@ -28,7 +28,12 @@ pub enum Message {
     NavToSettings,
 }
 
-impl AppCore {
+impl AppUI {
+    pub fn run() -> iced::Result {
+        iced::application("Limiinal", AppUI::update, AppUI::view)
+            .theme(|_| { Theme::Dark })
+            .run()
+    }
 
     pub fn update(&mut self, message: Message) {
         match message {
