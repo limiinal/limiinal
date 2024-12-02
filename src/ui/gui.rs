@@ -101,16 +101,11 @@ struct LogoFloatView {
     pub name: String,
     pub width: Length,
     pub height: Length,
-    pub image_path: String,
 }
 
 impl LogoFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        let logo_image = image(Handle::from_path(&self.image_path))
-            .width(self.width)
-            .height(self.height);
-        
-        container(logo_image)
+        container(svg::Svg::from_path("./assets/icons/logo.svg"))
             .width(self.width)
             .height(self.height)
             .style(LogoFloatView::style()).into()
@@ -141,7 +136,6 @@ impl Default for LogoFloatView {
             name: String::from("Logo"),
             width: Length::Fixed(100.0),
             height: Length::Fixed(100.0),
-            image_path: "./assets/images/LimiinalTransparent.png".to_string(),
         }
     }
 }
