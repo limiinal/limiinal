@@ -20,6 +20,7 @@ pub struct AppUI {
     nav_float_views: NavFloatView,
     message_list_float_view: MessageListFloatView,
     message_float_view: MessageFloatView,
+    search_query: String, 
  }
 
 #[derive(Debug, Clone)]
@@ -60,7 +61,8 @@ impl AppUI {
                 self.nav_float_views.current_active = NavFloatViewButton::Settings;
             }
             // This needs to be updated with functionality when a search is entered.
-            Message::ContentChanged(_) => {
+            Message::ContentChanged(new_content) => {
+                self.message_list_float_view.search_query = new_content;
                 info!("Content changed to...");
             }
         }
@@ -278,11 +280,12 @@ struct MessageListFloatView {
     pub width: Length,
     pub height: Length,
     pub content: String,
+    pub search_query: String,
 }
 
 impl MessageListFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        let input: TextInput<'_, Message> = text_input::<Message, iced::theme::Theme, iced::Renderer>("Search messages", "")
+        let input: TextInput<'_, Message> = text_input::<Message, iced::theme::Theme, iced::Renderer>("Search messages", &self.search_query)
             .on_input(Message::ContentChanged)
             // Aligns text central
             .align_x(iced::Alignment::Center)
@@ -333,6 +336,7 @@ impl Default for MessageListFloatView {
             width: Length::FillPortion(3),
             height: Length::Fill,
             content: String::from("Search Messages"),
+            search_query: String::new(),
         }
     }
 }
