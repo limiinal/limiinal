@@ -12,9 +12,9 @@ impl AppCore {
     }
 
     pub async fn run(&mut self) {
-        self.backend_thread = Some(task::spawn(async {
-            AppCore::start().await;
-        }));
+        //self.backend_thread = Some(task::spawn(async {
+        //    AppCore::start().await;
+        //}));
     }
 
     async fn start() {

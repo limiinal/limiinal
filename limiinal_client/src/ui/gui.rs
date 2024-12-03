@@ -2,9 +2,9 @@
 
 use iced::border::Radius;
 use iced::widget::image::Handle;
-use iced::widget::text_input;
+use iced::widget::scrollable;
 use iced::widget::TextInput;
-use iced::widget::{button, column, container, image, row, svg, text};
+use iced::widget::{button, column, container, image, row, svg, text, center, text_input};
 use iced::widget::{button::Status, Column, Space};
 use iced::Alignment;
 use iced::{Background, Border, Color, Element, Length, Padding, Theme};
@@ -20,6 +20,8 @@ macro_rules! asset_path {
 pub struct AppUI {
     window_width: f32,
     window_height: f32,
+
+    // float views
     logo_float_view: LogoFloatView,
     nav_float_views: NavFloatView,
     message_list_float_view: MessageListFloatView,
@@ -36,6 +38,8 @@ pub enum Message {
     NavToHome,
     NavToChat,
     NavToSettings,
+
+    ChatInputChanged(String),
 }
 
 impl AppUI {
@@ -68,6 +72,10 @@ impl AppUI {
             Message::ContentChanged(new_content) => {
                 self.message_list_float_view.search_query = new_content;
                 info!("Content changed to...");
+            }
+            Message::ChatInputChanged(new_content) => {
+                self.message_float_view.input_message = new_content;
+                info!("Chat input changed to...");
             }
         }
     }
@@ -346,16 +354,70 @@ impl Default for MessageListFloatView {
     }
 }
 //====== Message Float View ======//
+struct ChatMessage {
+    time: String,
+    sender: String,
+    body: String,
+    is_read: bool,
+}
+
 struct MessageFloatView {
     pub id: i32,
     pub name: String,
     pub width: Length,
     pub height: Length,
+    pub input_message: String,
+    pub chat_message: Box<Vec<ChatMessage>>,
 }
 
 impl MessageFloatView {
-    fn container_view(&self) -> Element<'_, Message> {
-        container(self.name.as_str())
+    fn container_view(&self) -> Element<Message> {
+        let chat_view: Element<_> = if self.chat_message.is_empty() {
+            center(
+                text("Start a Conversation")
+            ).into()
+        } else {
+            scrollable(
+                column(self.chat_message.iter().map(|msg| {
+                    row![
+                        text(&msg.body).width(Length::Fill),
+                    ].into()
+                }))
+            )
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        };
+
+        let message_input = {
+            let input = text_input("Message", &self.input_message)
+                .on_input(Message::ChatInputChanged);
+
+            let send_button = button("Send")
+                .style(|_, _| button::Style {
+                    background: Some(Color::from_rgb(0.5, 0.5, 0.5).into()),
+                    border: Border {
+                        radius: Radius {
+                            top_left: 20.0,
+                            top_right: 20.0,
+                            bottom_left: 20.0,
+                            bottom_right: 20.0,
+                        },
+                        ..Border::default()
+                    },
+                    ..button::Style::default()
+                });
+ 
+            row![input, send_button].spacing(10)
+        };
+
+        let message_view = column![
+            chat_view,
+            message_input
+        ];
+
+        container(message_view)
+            .padding(20)
             .width(self.width)
             .height(self.height)
             .style(MessageFloatView::style())
@@ -387,6 +449,21 @@ impl Default for MessageFloatView {
             name: String::from("Message"),
             width: Length::FillPortion(8),
             height: Length::Fill,
+            chat_message: Box::new(vec![
+                ChatMessage {
+                    time: String::from("12:00"),
+                    sender: String::from("John"),
+                    body: String::from("Hello!"),
+                    is_read: false,
+                },
+                ChatMessage {
+                    time: String::from("12:01"),
+                    sender: String::from("Jane"),
+                    body: String::from("Hi!"),
+                    is_read: false,
+                },
+            ]),
+            input_message: String::new(),
         }
     }
 }
