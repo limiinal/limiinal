@@ -1,16 +1,20 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use iced::widget::{column, container, row, image, button, text, svg,};
-use iced::widget::{Column, Space, button::Status};
-use iced::{Element, Length, Color, Theme, Padding, Border, Background};
 use iced::border::Radius;
 use iced::widget::image::Handle;
-use log::info;
-use iced::widget::TextInput;
 use iced::widget::text_input;
+use iced::widget::TextInput;
+use iced::widget::{button, column, container, image, row, svg, text};
+use iced::widget::{button::Status, Column, Space};
 use iced::Alignment;
+use iced::{Background, Border, Color, Element, Length, Padding, Theme};
+use log::info;
 
-
+macro_rules! asset_path {
+    ($path:expr) => {
+        format!("{}/{}", env!("CARGO_MANIFEST_DIR"), $path)
+    };
+}
 
 #[derive(Default)]
 pub struct AppUI {
@@ -20,8 +24,8 @@ pub struct AppUI {
     nav_float_views: NavFloatView,
     message_list_float_view: MessageListFloatView,
     message_float_view: MessageFloatView,
-    search_query: String, 
- }
+    search_query: String,
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -37,7 +41,7 @@ pub enum Message {
 impl AppUI {
     pub fn run() -> iced::Result {
         iced::application("Limiinal", AppUI::update, AppUI::view)
-            .theme(|_| { Theme::Dark })
+            .theme(|_| Theme::Dark)
             .run()
     }
 
@@ -66,7 +70,6 @@ impl AppUI {
                 info!("Content changed to...");
             }
         }
-
     }
 
     pub fn view(&self) -> Column<Message> {
@@ -87,15 +90,15 @@ impl AppUI {
             self.message_list_float_view.container_view(),
             self.message_float_view.container_view(),
         ]
-        .width(Length::Fill) 
+        .width(Length::Fill)
         .spacing(10)
         .into()
     }
 
     pub fn subscribtion(&self) -> iced::Subscription<Message> {
-         todo!()
+        todo!()
     }
-} 
+}
 
 //====== Logo Float View ======//
 struct LogoFloatView {
@@ -107,10 +110,11 @@ struct LogoFloatView {
 
 impl LogoFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        container(svg::Svg::from_path("./assets/icons/logo.svg"))
+        container(svg::Svg::from_path(asset_path!("./assets/icons/logo.svg")))
             .width(self.width)
             .height(self.height)
-            .style(LogoFloatView::style()).into()
+            .style(LogoFloatView::style())
+            .into()
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -160,41 +164,36 @@ struct NavFloatView {
 
 impl NavFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        container(
-            column![
-                button(
-                    svg::Svg::from_path("./assets/icons/home.svg")
-                )
+        container(column![
+            button(svg::Svg::from_path(asset_path!("assets/icons/home.svg")))
                 .padding(15)
                 .on_press(Message::NavToHome)
                 .style(self.button_style(NavFloatViewButton::Home)),
-                Space::with_height(Length::Fill),
-                button(
-                    svg::Svg::from_path("./assets/icons/chat.svg")
-                )
+            Space::with_height(Length::Fill),
+            button(svg::Svg::from_path(asset_path!("./assets/icons/chat.svg")))
                 .padding(15)
                 .on_press(Message::NavToChat)
                 .style(self.button_style(NavFloatViewButton::Chat)),
-                Space::with_height(Length::Fill),
-                button(
-                    svg::Svg::from_path("./assets/icons/setting.svg")
-                )
-                .padding(15)
-                .on_press(Message::NavToSettings)
-                .style(self.button_style(NavFloatViewButton::Settings)),
-            ]
-        )
-            .center(Length::Fill)
-            .padding(Padding {
-                top: 25.0,
-                left: 10.0,
-                right: 10.0,
-                bottom: 25.0,
-            })
+            Space::with_height(Length::Fill),
+            button(svg::Svg::from_path(asset_path!(
+                "./assets/icons/setting.svg"
+            )))
+            .padding(15)
+            .on_press(Message::NavToSettings)
+            .style(self.button_style(NavFloatViewButton::Settings)),
+        ])
+        .center(Length::Fill)
+        .padding(Padding {
+            top: 25.0,
+            left: 10.0,
+            right: 10.0,
+            bottom: 25.0,
+        })
         //container("asdjoad")
-            .width(self.width)
-            .height(self.height)
-            .style(NavFloatView::style()).into()
+        .width(self.width)
+        .height(self.height)
+        .style(NavFloatView::style())
+        .into()
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -214,9 +213,12 @@ impl NavFloatView {
         }
     }
 
-    fn button_style(&self, active: NavFloatViewButton) -> impl Fn(&Theme, Status) -> button::Style + '_ {
+    fn button_style(
+        &self,
+        active: NavFloatViewButton,
+    ) -> impl Fn(&Theme, Status) -> button::Style + '_ {
         move |_, status| {
-            let mut background: Option<Background>; 
+            let mut background: Option<Background>;
             let mut border: Border;
             match status {
                 Status::Hovered => {
@@ -285,13 +287,16 @@ struct MessageListFloatView {
 
 impl MessageListFloatView {
     fn container_view(&self) -> Element<'_, Message> {
-        let input: TextInput<'_, Message> = text_input::<Message, iced::theme::Theme, iced::Renderer>("Search messages", &self.search_query)
+        let input: TextInput<'_, Message> =
+            text_input::<Message, iced::theme::Theme, iced::Renderer>(
+                "Search messages",
+                &self.search_query,
+            )
             .on_input(Message::ContentChanged)
             // Aligns text central
             .align_x(iced::Alignment::Center)
             .width(200.0);
 
-        
         let input_element: Element<'_, Message> = input.into();
 
         let content_column = Column::new()
@@ -302,9 +307,9 @@ impl MessageListFloatView {
         container(content_column)
             .width(self.width)
             .height(self.height)
-            // This is causing search bar to be aligned correctly. 
+            // This is causing search bar to be aligned correctly.
             // However it may cause everything in container to be central.
-            // Cant seem to align it any other way. 
+            // Cant seem to align it any other way.
             .align_x(iced::Alignment::Center)
             .style(MessageListFloatView::style())
             .into()
@@ -353,8 +358,8 @@ impl MessageFloatView {
         container(self.name.as_str())
             .width(self.width)
             .height(self.height)
-            .style(MessageFloatView::style()).into()
-        
+            .style(MessageFloatView::style())
+            .into()
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -384,4 +389,13 @@ impl Default for MessageFloatView {
             height: Length::Fill,
         }
     }
+}
+
+fn load_svg(name: &str) -> Result<svg::Handle, std::io::Error> {
+    let path = format!("{}/resources/{}.svg", env!("CARGO_MANIFEST_DIR"), name);
+
+    // Attempt to create the SVG handle
+    let handle = svg::Handle::from_path(path);
+
+    Ok(handle)
 }
