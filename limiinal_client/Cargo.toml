@@ -5,10 +5,13 @@ edition = "2021"
 resolver = "2"
 
 [dependencies]
-libp2p = { workspace = true, features = ["tcp", "gossipsub", "mdns", "tls", "dns", "noise", "yamux", "websocket", "ping", "macros", "tokio", "quic"] }
+clap = { version = "4.5.6", features = ["derive"] }
+libp2p = { workspace = true, features = ["tcp", "gossipsub", "dcutr", "identify", "relay", "rendezvous", "tls", "dns", "noise", "yamux", "websocket", "ping", "macros", "tokio", "quic"]}
 futures = { workspace = true }
 iced = { version = "0.13.1", features = ["async-std", "image", "svg"] }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "rt", "signal"] }
 log = "0.4"
 env_logger = "0.11.5"
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing.workspace = true
+futures-timer = "3.0.3"
