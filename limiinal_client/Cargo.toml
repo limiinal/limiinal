@@ -1,0 +1,14 @@
+[package]
+name = "limiinal_client"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[dependencies]
+libp2p = { workspace = true, features = ["tcp", "tls", "dns", "noise", "yamux", "websocket", "ping", "macros", "tokio"] }
+futures = { workspace = true }
+iced = { version = "0.13.1", features = ["async-std", "image", "svg"] }
+tokio = { workspace = true }
+
+log = "0.4"
+env_logger = "0.11.5"

@@ -1,0 +1,13 @@
+[package]
+name = "limiinal_relay"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[dependencies]
+clap = { version = "4.5.6", features = ["derive"] }
+tokio = { workspace = true }
+futures = { workspace = true }
+libp2p = { version = "0.54.1", features = ["tokio", "noise", "macros", "ping", "tcp", "identify", "yamux", "relay", "quic"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
