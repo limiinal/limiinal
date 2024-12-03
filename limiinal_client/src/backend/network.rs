@@ -140,9 +140,6 @@ impl AppCore {
         // subscribes to our topic
         swarm.behaviour_mut().gossipsub.subscribe(&topic)?;
 
-        // Read full lines from stdin
-        let mut stdin = io::BufReader::new(io::stdin()).lines();
-
         // Listen on all interfaces and whatever port the OS assigns
         swarm.listen_on("/ip4/0.0.0.0/udp/0/quic-v1".parse()?)?;
         swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
@@ -227,64 +224,74 @@ impl AppCore {
         }
 
         block_on(async {
+            let mut stdin = io::BufReader::new(io::stdin()).lines();
+
             loop {
-                match swarm.next().await.unwrap() {
-                    SwarmEvent::NewListenAddr { address, .. } => {
-                        tracing::info!(%address, "Listening on address");
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
-                        relay::client::Event::ReservationReqAccepted { .. },
-                    )) => {
-                        assert!(opts.mode == Mode::Listen);
-                        tracing::info!("Relay accepted our reservation request");
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
-                    SwarmEvent::ConnectionEstablished {
-                        peer_id, endpoint, ..
-                    } => {
-                        tracing::info!(peer=%peer_id, ?endpoint, "Established new connection. You can now gossip");
-
-                        swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-
-                        loop {
-                            select! {
-                                Ok(Some(line)) = stdin.next_line() => {
-                                    if let Err(e) = swarm
-                                        .behaviour_mut().gossipsub
-                                        .publish(topic.clone(), line.as_bytes()) {
-                                        println!("Publish error: {e:?}");
-                                    }
-                                }
-                                event = swarm.select_next_some() => match event {
-                                    SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(gossipsub::Event::Message {
-                                        propagation_source: peer_id,
-                                        message_id: id,
-                                        message,
-                                    })) => println!(
-                                        "Got message: '{}' with id: {id} from peer: {peer_id}",
-                                        String::from_utf8_lossy(&message.data),
-                                    ),
-                                    SwarmEvent::NewListenAddr { address, .. } => {
-                                        println!("Local node is listening on {address}");
-                                    }
-                                    _ => {}
-                                }
-                            }
+                select! {
+                    // Handle user input for chat
+                    Ok(Some(line)) = stdin.next_line() => {
+                        if let Err(e) = swarm
+                            .behaviour_mut()
+                            .gossipsub
+                            .publish(topic.clone(), line.as_bytes()) {
+                            println!("Publish error: {e:?}");
                         }
                     }
-                    SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
-                        tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
+
+                    // Handle swarm events
+                    event = swarm.next() => match event.unwrap() {
+                        // Handle address events
+                        SwarmEvent::NewListenAddr { address, .. } => {
+                            tracing::info!(%address, "Listening on address");
+                        }
+
+                        // Handle relay events
+                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
+                            relay::client::Event::ReservationReqAccepted { .. },
+                        )) => {
+                            assert!(opts.mode == Mode::Listen);
+                            tracing::info!("Relay accepted our reservation request");
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
+                            tracing::info!(?event);
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
+                            tracing::info!(?event);
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
+                            tracing::info!(?event);
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
+
+                        // Handle connection establishment
+                        SwarmEvent::ConnectionEstablished {
+                            peer_id, endpoint, ..
+                        } => {
+                            tracing::info!(peer=%peer_id, ?endpoint, "Established new connection");
+                            // Add the peer explicitly to gossipsub
+                            swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
+                        }
+
+                        // Handle outgoing connection errors
+                        SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                            tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
+                        }
+
+                        // Handle gossipsub messages
+                        SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(gossipsub::Event::Message {
+                            propagation_source: peer_id,
+                            message_id: id,
+                            message,
+                        })) => {
+                            println!(
+                                "Got message: '{}' with id: {id} from peer: {peer_id}",
+                                String::from_utf8_lossy(&message.data),
+                            );
+                        }
+
+                        // Catch other events
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
         })
