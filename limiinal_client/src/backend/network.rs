@@ -86,6 +86,7 @@ impl AppCore {
             ping: ping::Behaviour,
             identify: identify::Behaviour,
             dcutr: dcutr::Behaviour,
+            gossipsub: gossipsub::Behaviour,
         }
 
         let mut swarm =
@@ -107,6 +108,18 @@ impl AppCore {
                         keypair.public(),
                     )),
                     dcutr: dcutr::Behaviour::new(keypair.public().to_peer_id()),
+                    gossipsub: {
+                        let gossipsub_config = gossipsub::ConfigBuilder::default()
+                            .heartbeat_interval(Duration::from_secs(1))
+                            .validation_mode(gossipsub::ValidationMode::Strict)
+                            .build()
+                            .expect("Valid Gossipsub configuration");
+                        gossipsub::Behaviour::new(
+                            gossipsub::MessageAuthenticity::Signed(keypair.clone()),
+                            gossipsub_config,
+                        )
+                        .expect("Failed to create Gossipsub behaviour")
+                    },
                 })?
                 .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
                 .build();
@@ -117,6 +130,11 @@ impl AppCore {
         swarm
             .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
             .unwrap();
+
+        let topic = gossipsub::IdentTopic::new("example-topic");
+        if swarm.behaviour_mut().gossipsub.subscribe(&topic).is_err() {
+            tracing::error!("Failed to subscribe to topic");
+        }
 
         // Wait to listen on all interfaces.
         block_on(async {
@@ -192,43 +210,105 @@ impl AppCore {
                 swarm
                     .listen_on(opts.relay_address.with(Protocol::P2pCircuit))
                     .unwrap();
+
+                let message = b"Hello, Gossipsub!".to_vec();
+                if swarm
+                    .behaviour_mut()
+                    .gossipsub
+                    .publish(topic.clone(), message)
+                    .is_err()
+                {
+                    tracing::error!("Failed to publish message");
+                }
             }
         }
 
         block_on(async {
+            // Create an asynchronous stdin reader
+            let stdin = io::BufReader::new(io::stdin());
+            let mut lines = stdin.lines();
+
+            // Define the Gossipsub topic
+            let topic = gossipsub::IdentTopic::new("example-topic");
+
             loop {
-                match swarm.next().await.unwrap() {
-                    SwarmEvent::NewListenAddr { address, .. } => {
-                        tracing::info!(%address, "Listening on address");
+                tokio::select! {
+                    // Handle Gossipsub and swarm events
+                    event = swarm.next() => match event.unwrap() {
+                        SwarmEvent::NewListenAddr { address, .. } => {
+                            tracing::info!(%address, "Listening on address");
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
+                            relay::client::Event::ReservationReqAccepted { .. },
+                        )) => {
+                            assert!(opts.mode == Mode::Listen);
+                            tracing::info!("Relay accepted our reservation request");
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
+                            tracing::info!(?event)
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
+                            tracing::info!(?event)
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
+                            tracing::info!(?event)
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
+                        SwarmEvent::ConnectionEstablished {
+                            peer_id, endpoint, ..
+                        } => {
+                            tracing::info!(peer=%peer_id, ?endpoint, "Established new connection");
+                        }
+                        SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                            tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
+                            gossipsub::Event::Message {
+                                propagation_source,
+                                message_id,
+                                message,
+                            },
+                        )) => {
+                            tracing::info!(
+                                "Received: '{:?}' from {:?}",
+                                String::from_utf8_lossy(&message.data),
+                                propagation_source
+                            );
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
+                            gossipsub::Event::Subscribed { peer_id, topic },
+                        )) => {
+                            tracing::info!("{:?} subscribed to {:?}", peer_id, topic);
+                        }
+                        SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
+                            gossipsub::Event::Unsubscribed { peer_id, topic },
+                        )) => {
+                            tracing::info!("{:?} unsubscribed from {:?}", peer_id, topic);
+                        }
+                        _ => {}
+                    },
+                    // Read lines from stdin
+                    line = lines.next_line() => match line {
+                        Ok(Some(text)) => {
+                            // Publish the input text to the Gossipsub topic
+                            if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic.clone(), text.clone().into_bytes()) {
+                                tracing::error!("Failed to publish message: {:?}", e);
+                            } else {
+                                tracing::info!("Published message: {:?}", text);
+                            }
+                        }
+                        Ok(None) => {
+                            tracing::warn!("Stdin closed");
+                            break; // Exit the loop if stdin is closed
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to read from stdin: {:?}", e);
+                        }
                     }
-                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
-                        relay::client::Event::ReservationReqAccepted { .. },
-                    )) => {
-                        assert!(opts.mode == Mode::Listen);
-                        tracing::info!("Relay accepted our reservation request");
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
-                        tracing::info!(?event)
-                    }
-                    SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
-                    SwarmEvent::ConnectionEstablished {
-                        peer_id, endpoint, ..
-                    } => {
-                        tracing::info!(peer=%peer_id, ?endpoint, "Established new connection");
-                    }
-                    SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
-                        tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
-                    }
-                    _ => {}
                 }
             }
-        })
+        });
+        Ok(())
     }
 }
 
