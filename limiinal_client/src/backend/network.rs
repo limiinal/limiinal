@@ -89,40 +89,26 @@ impl AppCore {
 
         let opts = Opts::parse();
 
-        let mut swarm = libp2p::SwarmBuilder::with_new_identity()
-            .with_tokio()
-            .with_tcp(
-                tcp::Config::default(),
-                noise::Config::new,
-                yamux::Config::default,
-            )?
-            .with_quic()
-            .with_dns()?
-            .with_relay_client(noise::Config::new, yamux::Config::default)?
-            .with_behaviour(|keypair, relay_behaviour| {
-                // Define the message ID function for gossipsub
-                let message_id_fn = |message: &gossipsub::Message| {
-                    let mut s = DefaultHasher::new();
-                    message.data.hash(&mut s);
-                    gossipsub::MessageId::from(s.finish().to_string())
-                };
+        #[derive(NetworkBehaviour)]
+        struct Behaviour {
+            relay_client: relay::client::Behaviour,
+            ping: ping::Behaviour,
+            identify: identify::Behaviour,
+            dcutr: dcutr::Behaviour,
+        }
 
-                // Set a custom gossipsub configuration
-                let gossipsub_config = gossipsub::ConfigBuilder::default()
-                    .heartbeat_interval(Duration::from_secs(10))
-                    .validation_mode(gossipsub::ValidationMode::Strict)
-                    .message_id_fn(message_id_fn)
-                    .build()
-                    .map_err(|msg| io::Error::new(io::ErrorKind::Other, msg))?; // Temporary hack because `build` does not return a proper `std::error::Error`.
-
-                // Build the gossipsub behavior
-                let gossipsub = gossipsub::Behaviour::new(
-                    gossipsub::MessageAuthenticity::Signed(keypair.clone()),
-                    gossipsub_config,
-                )?;
-
-                Ok(Behaviour {
-                    gossipsub,
+        let mut swarm =
+            libp2p::SwarmBuilder::with_existing_identity(generate_ed25519(opts.secret_key_seed))
+                .with_tokio()
+                .with_tcp(
+                    tcp::Config::default().nodelay(true),
+                    noise::Config::new,
+                    yamux::Config::default,
+                )?
+                .with_quic()
+                .with_dns()?
+                .with_relay_client(noise::Config::new, yamux::Config::default)?
+                .with_behaviour(|keypair, relay_behaviour| Behaviour {
                     relay_client: relay_behaviour,
                     ping: ping::Behaviour::new(ping::Config::new()),
                     identify: identify::Behaviour::new(identify::Config::new(
@@ -130,23 +116,16 @@ impl AppCore {
                         keypair.public(),
                     )),
                     dcutr: dcutr::Behaviour::new(keypair.public().to_peer_id()),
-                })
-            })?
-            .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
-            .build();
+                })?
+                .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
+                .build();
 
-        // Create a Gossipsub topic
-        let topic = gossipsub::IdentTopic::new("test-net");
-        // subscribes to our topic
-        swarm.behaviour_mut().gossipsub.subscribe(&topic)?;
-
-        // Listen on all interfaces and whatever port the OS assigns
-        swarm.listen_on("/ip4/0.0.0.0/udp/0/quic-v1".parse()?)?;
-        swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
-
-        println!(
-            "Enter messages via STDIN and they will be sent to connected peers using Gossipsub"
-        );
+        swarm
+            .listen_on("/ip4/0.0.0.0/udp/0/quic-v1".parse().unwrap())
+            .unwrap();
+        swarm
+            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
+            .unwrap();
 
         // Wait to listen on all interfaces.
         block_on(async {
@@ -224,74 +203,36 @@ impl AppCore {
         }
 
         block_on(async {
-            let mut stdin = io::BufReader::new(io::stdin()).lines();
-
             loop {
-                select! {
-                    // Handle user input for chat
-                    Ok(Some(line)) = stdin.next_line() => {
-                        if let Err(e) = swarm
-                            .behaviour_mut()
-                            .gossipsub
-                            .publish(topic.clone(), line.as_bytes()) {
-                            println!("Publish error: {e:?}");
-                        }
+                match swarm.next().await.unwrap() {
+                    SwarmEvent::NewListenAddr { address, .. } => {
+                        tracing::info!(%address, "Listening on address");
                     }
-
-                    // Handle swarm events
-                    event = swarm.next() => match event.unwrap() {
-                        // Handle address events
-                        SwarmEvent::NewListenAddr { address, .. } => {
-                            tracing::info!(%address, "Listening on address");
-                        }
-
-                        // Handle relay events
-                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
-                            relay::client::Event::ReservationReqAccepted { .. },
-                        )) => {
-                            assert!(opts.mode == Mode::Listen);
-                            tracing::info!("Relay accepted our reservation request");
-                        }
-                        SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
-                            tracing::info!(?event);
-                        }
-                        SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
-                            tracing::info!(?event);
-                        }
-                        SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
-                            tracing::info!(?event);
-                        }
-                        SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
-
-                        // Handle connection establishment
-                        SwarmEvent::ConnectionEstablished {
-                            peer_id, endpoint, ..
-                        } => {
-                            tracing::info!(peer=%peer_id, ?endpoint, "Established new connection");
-                            // Add the peer explicitly to gossipsub
-                            swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-                        }
-
-                        // Handle outgoing connection errors
-                        SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
-                            tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
-                        }
-
-                        // Handle gossipsub messages
-                        SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(gossipsub::Event::Message {
-                            propagation_source: peer_id,
-                            message_id: id,
-                            message,
-                        })) => {
-                            println!(
-                                "Got message: '{}' with id: {id} from peer: {peer_id}",
-                                String::from_utf8_lossy(&message.data),
-                            );
-                        }
-
-                        // Catch other events
-                        _ => {}
+                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(
+                        relay::client::Event::ReservationReqAccepted { .. },
+                    )) => {
+                        assert!(opts.mode == Mode::Listen);
+                        tracing::info!("Relay accepted our reservation request");
                     }
+                    SwarmEvent::Behaviour(BehaviourEvent::RelayClient(event)) => {
+                        tracing::info!(?event)
+                    }
+                    SwarmEvent::Behaviour(BehaviourEvent::Dcutr(event)) => {
+                        tracing::info!(?event)
+                    }
+                    SwarmEvent::Behaviour(BehaviourEvent::Identify(event)) => {
+                        tracing::info!(?event)
+                    }
+                    SwarmEvent::Behaviour(BehaviourEvent::Ping(_)) => {}
+                    SwarmEvent::ConnectionEstablished {
+                        peer_id, endpoint, ..
+                    } => {
+                        tracing::info!(peer=%peer_id, ?endpoint, "Established new connection");
+                    }
+                    SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                        tracing::info!(peer=?peer_id, "Outgoing connection failed: {error}");
+                    }
+                    _ => {}
                 }
             }
         })

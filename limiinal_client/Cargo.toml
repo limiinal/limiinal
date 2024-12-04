@@ -6,7 +6,24 @@ resolver = "2"
 
 [dependencies]
 clap = { version = "4.5.6", features = ["derive"] }
-libp2p = { workspace = true, features = ["tcp", "gossipsub", "dcutr", "identify", "relay", "rendezvous", "tls", "dns", "noise", "yamux", "websocket", "ping", "macros", "tokio", "quic"]}
+libp2p = { workspace = true, features = [
+  "tcp",
+  "gossipsub",
+  "mdns",
+  "dcutr",
+  "identify",
+  "relay",
+  "rendezvous",
+  "tls",
+  "dns",
+  "noise",
+  "yamux",
+  "websocket",
+  "ping",
+  "macros",
+  "tokio",
+  "quic",
+] }
 futures = { workspace = true }
 iced = { version = "0.13.1", features = ["async-std", "image", "svg"] }
 tokio = { workspace = true, features = ["macros", "net", "rt", "signal"] }
