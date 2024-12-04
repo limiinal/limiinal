@@ -68,9 +68,9 @@ impl AppCore {
     }
 
     pub async fn run(&mut self) {
-        self.backend_thread = Some(task::spawn(async {
-            AppCore::start().await;
-        }));
+        if let Err(e) = AppCore::start().await {
+            tracing::error!("Failed to start AppCore: {:?}", e);
+        }
     }
 
     async fn start() -> Result<(), Box<dyn Error>> {
