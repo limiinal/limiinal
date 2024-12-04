@@ -56,15 +56,6 @@ impl FromStr for Mode {
     }
 }
 
-#[derive(NetworkBehaviour)]
-struct Behaviour {
-    gossipsub: gossipsub::Behaviour,
-    relay_client: relay::client::Behaviour,
-    ping: ping::Behaviour,
-    identify: identify::Behaviour,
-    dcutr: dcutr::Behaviour,
-}
-
 pub struct AppCore {
     pub backend_thread: Option<task::JoinHandle<()>>,
 }
