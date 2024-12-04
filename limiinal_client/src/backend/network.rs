@@ -1,7 +1,7 @@
 use tokio::task;
 
 pub struct AppCore {
-    pub backend_thread : Option<task::JoinHandle<()>>,
+    pub backend_thread: Option<task::JoinHandle<()>>,
 }
 
 impl AppCore {
@@ -23,4 +23,3 @@ impl AppCore {
         }
     }
 }
-

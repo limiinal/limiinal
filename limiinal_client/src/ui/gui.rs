@@ -4,12 +4,13 @@ use iced::border::Radius;
 use iced::keyboard;
 use iced::widget::image::Handle;
 use iced::widget::scrollable;
+use iced::widget::Button;
+use iced::widget::Text;
 use iced::widget::TextInput;
 use iced::widget::{button, center, column, container, image, row, svg, text, text_input};
 use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
 use log::info;
-use iced::widget::Text;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -28,6 +29,7 @@ pub struct AppUI {
     message_list_float_view: MessageListFloatView,
     message_float_view: MessageFloatView,
     search_query: String,
+    active_containers: Vec<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +44,7 @@ pub enum Message {
 
     ChatInputChanged(String),
     SendMessage,
+    ContainerPressed(usize),
 }
 
 impl AppUI {
@@ -84,6 +87,11 @@ impl AppUI {
                         self.message_float_view.input_message
                     )
                 );
+            }
+            Message::ContainerPressed(index) => {
+                if let Some(active) = self.active_containers.get_mut(index) {
+                    *active = !*active; // Toggle the active state
+                }
             }
             Message::SendMessage => {
                 if self.message_float_view.input_message.is_empty() {
@@ -312,6 +320,7 @@ struct MessageListFloatView {
     pub height: Length,
     pub content: String,
     pub search_query: String,
+    pub active_containers: Vec<bool>,
 }
 
 impl MessageListFloatView {
@@ -328,64 +337,51 @@ impl MessageListFloatView {
 
         let input_element: Element<'_, Message> = input.into();
 
-        
-        // This is the initial message container.
-        // Things to do
-        // 0. Bottom border between containers.
-        // 1. Background same colour
-        // 2. Hover for colour change
-        // 3. Key press for dark colour.
-        let initial_container = container(
-            Text::new("John Doe")
-                .size(16)
-        )
-        .padding(5)
-        .width(self.width)   // Set the width of the container
-        .height(Length::Fixed(65.0))
-        .style(MessageListFloatView::message_ui_style());
+        let names = vec!["John Doe", "John Smith", "Jane Doe", "Alice Johnson"];
 
-        let test_container = container(
-            Text::new("John Smith")
-                .size(16)
-        )
-        .padding(5)
-        .width(self.width)   // Set the width of the container
-        .height(Length::Fixed(65.0))
-        .style(MessageListFloatView::message_ui_style());
+        // Map each name to an index and create a button for each
+        let containers: Vec<Element<'_, Message>> = names
+            .into_iter()
+            .enumerate()
+            .map(|(index, name)| {
+                let is_active = self.active_containers.get(index).copied().unwrap_or(false);
 
-        let content_column = Column::new()
-            .align_x(iced::Alignment::End)
-            .padding(10)
-            //.spacing(10)
+                // Wrap the container in a button
+                Button::new(
+                    container(Text::new(name).size(16))
+                        .padding(5)
+                        .width(self.width)
+                        .height(Length::Fixed(65.0))
+                        .style(MessageListFloatView::message_ui_style(is_active)),
+                )
+                .on_press(Message::ContainerPressed(index)) // Handle press event
+                .style(self.button_style(is_active))
+                .into()
+            })
+            .collect();
+
+        // Combine the buttons into a column
+        let mut content_column = Column::new().align_x(iced::Alignment::End).padding(10);
+
+        content_column = content_column
             .push(input_element)
-            .push(Space::with_height(10))
-            .push(initial_container)
-            .push(test_container);
+            .push(Space::with_height(10)); // Push the search input box first
+
+        for button in containers {
+            content_column = content_column.push(button); // Push each button into the column
+        }
 
         container(content_column)
             .width(self.width)
             .height(self.height)
-            // This is causing search bar to be aligned correctly.
-            // However it may cause everything in container to be central.
-            // Cant seem to align it any other way.
             .align_x(iced::Alignment::Center)
             .style(MessageListFloatView::style())
             .into()
     }
 
-    fn message_ui_style() -> impl Fn(&Theme) -> container::Style {
+    fn message_ui_style(is_active: bool) -> impl Fn(&Theme) -> container::Style {
         move |_| container::Style {
-            // Use this for when you clikc on it.
-            // Click colour
-            // background: Some(Color::from_rgba(32.0 / 255.0, 34.0 / 255.0, 37.0 / 255.0, 1.0).into()),
-            // Hover colour
-            background: Some(Color::from_rgba(60.0 / 255.0, 60.0 / 255.0, 60.0 / 255.0, 1.0).into()),
-            text_color: Some(Color::from_rgba(154.0 / 255.0, 154.0 / 255.0, 155.0 / 255.0, 1.0)),
-            border: Border {
-                color: Color::from_rgba(154.0 / 255.0, 154.0 / 255.0, 155.0 / 255.0, 1.0),
-              //  width: 1.0,
-                ..Border::default()
-            },
+            text_color: Some(Color::WHITE),
             ..container::Style::default()
         }
     }
@@ -406,10 +402,51 @@ impl MessageListFloatView {
             ..container::Style::default()
         }
     }
+
+    fn button_style(&self, is_active: bool) -> impl Fn(&Theme, Status) -> button::Style + '_ {
+        move |_, status| {
+            let mut background: Option<Background>;
+            let mut border: Border;
+
+            match status {
+                Status::Hovered => {
+                    background = Some(Color::from_rgb(0.45, 0.45, 0.45).into());
+                    border = Border {
+                        ..Border::default()
+                    };
+                }
+                _ => {
+                    background = None;
+                    border = Border::default();
+                }
+            }
+
+            // Adjust the active state style
+            if is_active {
+                background = Some(Color::from_rgb(0.5, 0.5, 0.5).into());
+                border = Border {
+                    radius: Radius {
+                        top_left: 20.0,
+                        top_right: 20.0,
+                        bottom_left: 20.0,
+                        bottom_right: 20.0,
+                    },
+                    ..Border::default()
+                };
+            }
+
+            button::Style {
+                background,
+                border,
+                ..button::Style::default()
+            }
+        }
+    }
 }
 
 impl Default for MessageListFloatView {
     fn default() -> Self {
+        let container_count = 4;
         Self {
             id: 2,
             name: String::from("MessageList"),
@@ -417,9 +454,11 @@ impl Default for MessageListFloatView {
             height: Length::Fill,
             content: String::from("Search Messages"),
             search_query: String::new(),
+            active_containers: vec![false; container_count],
         }
     }
 }
+
 //====== Message Float View ======//
 struct ChatMessage {
     time: String,
