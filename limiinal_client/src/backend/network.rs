@@ -19,6 +19,8 @@ use libp2p::{
 use tokio::{io, io::AsyncBufReadExt, select, task};
 use tracing_subscriber::{filter, EnvFilter};
 
+use log::*;
+
 #[derive(Debug, Parser)]
 #[clap(name = "libp2p DCUtR client")]
 struct Opts {
@@ -56,6 +58,7 @@ impl FromStr for Mode {
     }
 }
 
+#[derive(Default)]
 pub struct AppCore {
     pub backend_thread: Option<task::JoinHandle<()>>,
 }
@@ -67,10 +70,11 @@ impl AppCore {
         }
     }
 
-    pub async fn run(&mut self) {
-        self.backend_thread = Some(task::spawn(async {
-            AppCore::start().await;
-        }));
+    pub async fn run() {
+        info!("Backend is running");
+        if let Err(e) = AppCore::start().await {
+            tracing::error!("Failed to start AppCore: {:?}", e);
+        }
     }
 
     async fn start() -> Result<(), Box<dyn Error>> {
