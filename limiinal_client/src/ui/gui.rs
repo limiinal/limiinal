@@ -1,14 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use iced::border::Radius;
+use iced::keyboard;
 use iced::widget::image::Handle;
 use iced::widget::scrollable;
 use iced::widget::TextInput;
-use iced::widget::{button, column, container, image, row, svg, text, center, text_input};
+use iced::widget::{button, center, column, container, image, row, svg, text, text_input};
 use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
-use iced::keyboard;
 use log::info;
+use iced::widget::Text;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -76,7 +77,13 @@ impl AppUI {
             }
             Message::ChatInputChanged(new_content) => {
                 self.message_float_view.input_message = new_content.to_string();
-                info!("{}", format!("Chat input changed to {}", self.message_float_view.input_message));
+                info!(
+                    "{}",
+                    format!(
+                        "Chat input changed to {}",
+                        self.message_float_view.input_message
+                    )
+                );
             }
             Message::SendMessage => {
                 if self.message_float_view.input_message.is_empty() {
@@ -88,7 +95,10 @@ impl AppUI {
                     body: self.message_float_view.input_message.to_string(),
                     is_read: false,
                 });
-                info!("{}", format!("Message sent: {}", self.message_float_view.input_message));
+                info!(
+                    "{}",
+                    format!("Message sent: {}", self.message_float_view.input_message)
+                );
 
                 self.message_float_view.input_message = String::new();
             }
@@ -318,10 +328,39 @@ impl MessageListFloatView {
 
         let input_element: Element<'_, Message> = input.into();
 
+        
+        // This is the initial message container.
+        // Things to do
+        // 0. Bottom border between containers.
+        // 1. Background same colour
+        // 2. Hover for colour change
+        // 3. Key press for dark colour.
+        let initial_container = container(
+            Text::new("John Doe")
+                .size(16)
+        )
+        .padding(5)
+        .width(self.width)   // Set the width of the container
+        .height(Length::Fixed(65.0))
+        .style(MessageListFloatView::message_ui_style());
+
+        let test_container = container(
+            Text::new("John Smith")
+                .size(16)
+        )
+        .padding(5)
+        .width(self.width)   // Set the width of the container
+        .height(Length::Fixed(65.0))
+        .style(MessageListFloatView::message_ui_style());
+
         let content_column = Column::new()
             .align_x(iced::Alignment::End)
             .padding(10)
-            .push(input_element);
+            //.spacing(10)
+            .push(input_element)
+            .push(Space::with_height(10))
+            .push(initial_container)
+            .push(test_container);
 
         container(content_column)
             .width(self.width)
@@ -332,6 +371,23 @@ impl MessageListFloatView {
             .align_x(iced::Alignment::Center)
             .style(MessageListFloatView::style())
             .into()
+    }
+
+    fn message_ui_style() -> impl Fn(&Theme) -> container::Style {
+        move |_| container::Style {
+            // Use this for when you clikc on it.
+            // Click colour
+            // background: Some(Color::from_rgba(32.0 / 255.0, 34.0 / 255.0, 37.0 / 255.0, 1.0).into()),
+            // Hover colour
+            background: Some(Color::from_rgba(60.0 / 255.0, 60.0 / 255.0, 60.0 / 255.0, 1.0).into()),
+            text_color: Some(Color::from_rgba(154.0 / 255.0, 154.0 / 255.0, 155.0 / 255.0, 1.0)),
+            border: Border {
+                color: Color::from_rgba(154.0 / 255.0, 154.0 / 255.0, 155.0 / 255.0, 1.0),
+              //  width: 1.0,
+                ..Border::default()
+            },
+            ..container::Style::default()
+        }
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -385,17 +441,13 @@ impl MessageFloatView {
     fn container_view(&self) -> Element<Message> {
         // chat view
         let chat_view: Element<_> = if self.chat_message.is_empty() {
-            center(
-                text("Start a Conversation")
-            ).into()
+            center(text("Start a Conversation")).into()
         } else {
-            scrollable(
-                column(self.chat_message.iter().map(|msg| {
-                    row![
-                        text(&msg.body).width(Length::Fill),
-                    ].into()
-                }))
-            )
+            scrollable(column(
+                self.chat_message
+                    .iter()
+                    .map(|msg| row![text(&msg.body).width(Length::Fill),].into()),
+            ))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -409,26 +461,24 @@ impl MessageFloatView {
                 .on_submit(Message::SendMessage);
 
             // send button
-            let mut send_button = button("Send")
-                .style(|_, _| button::Style {
-                    background: Some(Color::from_rgb(0.4, 0.4, 0.4).into()),
-                    border: Border {
-                        radius: Radius {
-                            top_left: 20.0,
-                            top_right: 20.0,
-                            bottom_left: 20.0,
-                            bottom_right: 20.0,
-                        },
-                        ..Border::default()
+            let mut send_button = button("Send").style(|_, _| button::Style {
+                background: Some(Color::from_rgb(0.4, 0.4, 0.4).into()),
+                border: Border {
+                    radius: Radius {
+                        top_left: 20.0,
+                        top_right: 20.0,
+                        bottom_left: 20.0,
+                        bottom_right: 20.0,
                     },
-                    ..button::Style::default()
-                });
+                    ..Border::default()
+                },
+                ..button::Style::default()
+            });
 
             if !self.input_message.is_empty() {
                 send_button = send_button.on_press(Message::SendMessage);
             }
 
- 
             row![input, send_button].spacing(10)
         };
 
