@@ -210,16 +210,6 @@ impl AppCore {
                 swarm
                     .listen_on(opts.relay_address.with(Protocol::P2pCircuit))
                     .unwrap();
-
-                let message = b"Hello, Gossipsub!".to_vec();
-                if swarm
-                    .behaviour_mut()
-                    .gossipsub
-                    .publish(topic.clone(), message)
-                    .is_err()
-                {
-                    tracing::error!("Failed to publish message");
-                }
             }
         }
 
@@ -278,12 +268,12 @@ impl AppCore {
                         SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
                             gossipsub::Event::Subscribed { peer_id, topic },
                         )) => {
-                            tracing::info!("{:?} subscribed to {:?}", peer_id, topic);
+                            println!("{:?} subscribed to {:?}", peer_id, topic);
                         }
                         SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
                             gossipsub::Event::Unsubscribed { peer_id, topic },
                         )) => {
-                            tracing::info!("{:?} unsubscribed from {:?}", peer_id, topic);
+                            println!("{:?} unsubscribed from {:?}", peer_id, topic);
                         }
                         _ => {}
                     },
@@ -292,9 +282,9 @@ impl AppCore {
                         Ok(Some(text)) => {
                             // Publish the input text to the Gossipsub topic
                             if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic.clone(), text.clone().into_bytes()) {
-                                tracing::error!("Failed to publish message: {:?}", e);
+                                println!("Failed to publish message: {:?}", e);
                             } else {
-                                tracing::info!("Published message: {:?}", text);
+                                println!("Published message: {:?}", text);
                             }
                         }
                         Ok(None) => {
