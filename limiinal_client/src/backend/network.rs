@@ -167,7 +167,9 @@ impl AppCore {
                         tracing::info!(address=%observed_addr, "Relay told us our observed address");
                         learned_observed_addr = true;
                     }
-                    event => panic!("{event:?}"),
+                    event => {
+                        tracing::error!(?event, "Unhandled event occurred");
+                    }
                 }
 
                 if learned_observed_addr && told_relay_observed_addr {
