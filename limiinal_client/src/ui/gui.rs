@@ -57,7 +57,7 @@ impl AppUI {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::RunningBackend => {
-                info!("Backend is running");
+                info!("Backend done running");
 
                 Task::none()
             }
