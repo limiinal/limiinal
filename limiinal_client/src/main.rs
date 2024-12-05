@@ -3,8 +3,8 @@ mod ui;
 
 use backend::network::AppCore;
 //use iced::widget::container::background;
-use ui::gui::AppUI;
 use iced::Theme;
+use ui::gui::AppUI;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
