@@ -3,13 +3,8 @@
 use crate::backend::network::AppCore;
 
 use iced::border::Radius;
-use iced::widget;
-use iced::widget::text_input;
-use iced::widget::TextInput;
-use iced::widget::{button, column, container, row, svg};
-use iced::widget::{button::Status, Column, Space};
-use iced::{Background, Border, Color, Element, Length, Padding, Task, Theme};
 use iced::keyboard;
+use iced::widget;
 use iced::widget::image::Handle;
 use iced::widget::scrollable;
 use iced::widget::Button;
@@ -17,7 +12,7 @@ use iced::widget::Text;
 use iced::widget::TextInput;
 use iced::widget::{button, center, column, container, image, row, svg, text, text_input};
 use iced::widget::{button::Status, Column, Space};
-use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
+use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
 
 macro_rules! asset_path {
@@ -108,8 +103,6 @@ impl AppUI {
                 info!("Content changed to...");
 
                 Task::none()
-                self.message_list_float_view.search_query = new_content.to_string();
-                info!("{}", format!("Content changed to {}", new_content));
             }
             Message::ChatInputChanged(new_content) => {
                 self.message_float_view.input_message = new_content.to_string();
@@ -120,15 +113,18 @@ impl AppUI {
                         self.message_float_view.input_message
                     )
                 );
+
+                Task::none()
             }
             Message::ContainerPressed(index) => {
                 if let Some(active) = self.active_containers.get_mut(index) {
                     *active = !*active; // Toggle the active state
                 }
+                Task::none()
             }
             Message::SendMessage => {
                 if self.message_float_view.input_message.is_empty() {
-                    return;
+                    return Task::none();
                 }
                 self.message_float_view.chat_message.push(ChatMessage {
                     time: String::from(""),
@@ -142,6 +138,7 @@ impl AppUI {
                 );
 
                 self.message_float_view.input_message = String::new();
+                Task::none()
             }
         }
     }
