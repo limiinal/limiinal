@@ -9,6 +9,15 @@ use iced::widget::TextInput;
 use iced::widget::{button, column, container, row, svg};
 use iced::widget::{button::Status, Column, Space};
 use iced::{Background, Border, Color, Element, Length, Padding, Task, Theme};
+use iced::keyboard;
+use iced::widget::image::Handle;
+use iced::widget::scrollable;
+use iced::widget::Button;
+use iced::widget::Text;
+use iced::widget::TextInput;
+use iced::widget::{button, center, column, container, image, row, svg, text, text_input};
+use iced::widget::{button::Status, Column, Space};
+use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
 use log::info;
 
 macro_rules! asset_path {
@@ -21,11 +30,14 @@ macro_rules! asset_path {
 pub struct AppUI {
     window_width: f32,
     window_height: f32,
+
+    // float views
     logo_float_view: LogoFloatView,
     nav_float_views: NavFloatView,
     message_list_float_view: MessageListFloatView,
     message_float_view: MessageFloatView,
     search_query: String,
+    active_containers: Vec<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +51,10 @@ pub enum Message {
     NavToHome,
     NavToChat,
     NavToSettings,
+
+    ChatInputChanged(String),
+    SendMessage,
+    ContainerPressed(usize),
 }
 
 impl AppUI {
@@ -92,6 +108,40 @@ impl AppUI {
                 info!("Content changed to...");
 
                 Task::none()
+                self.message_list_float_view.search_query = new_content.to_string();
+                info!("{}", format!("Content changed to {}", new_content));
+            }
+            Message::ChatInputChanged(new_content) => {
+                self.message_float_view.input_message = new_content.to_string();
+                info!(
+                    "{}",
+                    format!(
+                        "Chat input changed to {}",
+                        self.message_float_view.input_message
+                    )
+                );
+            }
+            Message::ContainerPressed(index) => {
+                if let Some(active) = self.active_containers.get_mut(index) {
+                    *active = !*active; // Toggle the active state
+                }
+            }
+            Message::SendMessage => {
+                if self.message_float_view.input_message.is_empty() {
+                    return;
+                }
+                self.message_float_view.chat_message.push(ChatMessage {
+                    time: String::from(""),
+                    sender: String::from(""),
+                    body: self.message_float_view.input_message.to_string(),
+                    is_read: false,
+                });
+                info!(
+                    "{}",
+                    format!("Message sent: {}", self.message_float_view.input_message)
+                );
+
+                self.message_float_view.input_message = String::new();
             }
         }
     }
@@ -117,10 +167,6 @@ impl AppUI {
         .width(Length::Fill)
         .spacing(10)
         .into()
-    }
-
-    pub fn subscribtion(&self) -> iced::Subscription<Message> {
-        todo!()
     }
 }
 
@@ -307,6 +353,7 @@ struct MessageListFloatView {
     pub height: Length,
     pub content: String,
     pub search_query: String,
+    pub active_containers: Vec<bool>,
 }
 
 impl MessageListFloatView {
@@ -323,20 +370,53 @@ impl MessageListFloatView {
 
         let input_element: Element<'_, Message> = input.into();
 
-        let content_column = Column::new()
-            .align_x(iced::Alignment::End)
-            .padding(10)
-            .push(input_element);
+        let names = vec!["John Doe", "John Smith", "Jane Doe", "Alice Johnson"];
+
+        // Map each name to an index and create a button for each
+        let containers: Vec<Element<'_, Message>> = names
+            .into_iter()
+            .enumerate()
+            .map(|(index, name)| {
+                let is_active = self.active_containers.get(index).copied().unwrap_or(false);
+
+                // Wrap the container in a button
+                Button::new(
+                    container(Text::new(name).size(16))
+                        .padding(5)
+                        .width(self.width)
+                        .height(Length::Fixed(65.0))
+                        .style(MessageListFloatView::message_ui_style(is_active)),
+                )
+                .on_press(Message::ContainerPressed(index)) // Handle press event
+                .style(self.button_style(is_active))
+                .into()
+            })
+            .collect();
+
+        // Combine the buttons into a column
+        let mut content_column = Column::new().align_x(iced::Alignment::End).padding(10);
+
+        content_column = content_column
+            .push(input_element)
+            .push(Space::with_height(10)); // Push the search input box first
+
+        for button in containers {
+            content_column = content_column.push(button); // Push each button into the column
+        }
 
         container(content_column)
             .width(self.width)
             .height(self.height)
-            // This is causing search bar to be aligned correctly.
-            // However it may cause everything in container to be central.
-            // Cant seem to align it any other way.
             .align_x(iced::Alignment::Center)
             .style(MessageListFloatView::style())
             .into()
+    }
+
+    fn message_ui_style(is_active: bool) -> impl Fn(&Theme) -> container::Style {
+        move |_| container::Style {
+            text_color: Some(Color::WHITE),
+            ..container::Style::default()
+        }
     }
 
     fn style() -> impl Fn(&Theme) -> container::Style {
@@ -355,10 +435,51 @@ impl MessageListFloatView {
             ..container::Style::default()
         }
     }
+
+    fn button_style(&self, is_active: bool) -> impl Fn(&Theme, Status) -> button::Style + '_ {
+        move |_, status| {
+            let mut background: Option<Background>;
+            let mut border: Border;
+
+            match status {
+                Status::Hovered => {
+                    background = Some(Color::from_rgb(0.45, 0.45, 0.45).into());
+                    border = Border {
+                        ..Border::default()
+                    };
+                }
+                _ => {
+                    background = None;
+                    border = Border::default();
+                }
+            }
+
+            // Adjust the active state style
+            if is_active {
+                background = Some(Color::from_rgb(0.5, 0.5, 0.5).into());
+                border = Border {
+                    radius: Radius {
+                        top_left: 20.0,
+                        top_right: 20.0,
+                        bottom_left: 20.0,
+                        bottom_right: 20.0,
+                    },
+                    ..Border::default()
+                };
+            }
+
+            button::Style {
+                background,
+                border,
+                ..button::Style::default()
+            }
+        }
+    }
 }
 
 impl Default for MessageListFloatView {
     fn default() -> Self {
+        let container_count = 4;
         Self {
             id: 2,
             name: String::from("MessageList"),
@@ -366,20 +487,77 @@ impl Default for MessageListFloatView {
             height: Length::Fill,
             content: String::from("Search Messages"),
             search_query: String::new(),
+            active_containers: vec![false; container_count],
         }
     }
 }
+
 //====== Message Float View ======//
+struct ChatMessage {
+    time: String,
+    sender: String,
+    body: String,
+    is_read: bool,
+}
+
 struct MessageFloatView {
     pub id: i32,
     pub name: String,
     pub width: Length,
     pub height: Length,
+    pub input_message: String,
+    pub chat_message: Box<Vec<ChatMessage>>,
 }
 
 impl MessageFloatView {
-    fn container_view(&self) -> Element<'_, Message> {
-        container(self.name.as_str())
+    fn container_view(&self) -> Element<Message> {
+        // chat view
+        let chat_view: Element<_> = if self.chat_message.is_empty() {
+            center(text("Start a Conversation")).into()
+        } else {
+            scrollable(column(
+                self.chat_message
+                    .iter()
+                    .map(|msg| row![text(&msg.body).width(Length::Fill),].into()),
+            ))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+        };
+
+        // message input
+        let message_input = {
+            // input field
+            let input = text_input("Message", &self.input_message)
+                .on_input(|content| Message::ChatInputChanged(content))
+                .on_submit(Message::SendMessage);
+
+            // send button
+            let mut send_button = button("Send").style(|_, _| button::Style {
+                background: Some(Color::from_rgb(0.4, 0.4, 0.4).into()),
+                border: Border {
+                    radius: Radius {
+                        top_left: 20.0,
+                        top_right: 20.0,
+                        bottom_left: 20.0,
+                        bottom_right: 20.0,
+                    },
+                    ..Border::default()
+                },
+                ..button::Style::default()
+            });
+
+            if !self.input_message.is_empty() {
+                send_button = send_button.on_press(Message::SendMessage);
+            }
+
+            row![input, send_button].spacing(10)
+        };
+
+        // message view
+        let message_view = column![chat_view, message_input];
+        container(message_view)
+            .padding(20)
             .width(self.width)
             .height(self.height)
             .style(MessageFloatView::style())
@@ -411,6 +589,21 @@ impl Default for MessageFloatView {
             name: String::from("Message"),
             width: Length::FillPortion(8),
             height: Length::Fill,
+            chat_message: Box::new(vec![
+                ChatMessage {
+                    time: String::from("12:00"),
+                    sender: String::from("John"),
+                    body: String::from("Hello!"),
+                    is_read: false,
+                },
+                ChatMessage {
+                    time: String::from("12:01"),
+                    sender: String::from("Jane"),
+                    body: String::from("Hi!"),
+                    is_read: false,
+                },
+            ]),
+            input_message: String::new(),
         }
     }
 }
