@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use crate::backend::network::AppCore;
+
 use iced::border::Radius;
 use iced::keyboard;
+use iced::widget;
 use iced::widget::image::Handle;
 use iced::widget::scrollable;
 use iced::widget::Button;
@@ -9,7 +12,7 @@ use iced::widget::Text;
 use iced::widget::TextInput;
 use iced::widget::{button, center, column, container, image, row, svg, text, text_input};
 use iced::widget::{button::Status, Column, Space};
-use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Theme};
+use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
 
 macro_rules! asset_path {
@@ -34,6 +37,8 @@ pub struct AppUI {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    RunningBackend,
+
     Resize(f32, f32),
     ContentChanged(String),
 
@@ -48,35 +53,56 @@ pub enum Message {
 }
 
 impl AppUI {
-    pub fn run() -> iced::Result {
-        iced::application("Limiinal", AppUI::update, AppUI::view)
-            .theme(|_| Theme::Dark)
-            .run()
+    pub fn new() -> (Self, Task<Message>) {
+        (
+            Self {
+                ..Default::default()
+            },
+            Task::batch([
+                Task::perform(AppCore::run(), |_| Message::RunningBackend),
+                widget::focus_next(),
+            ]),
+        )
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::RunningBackend => {
+                info!("Backend done running");
+
+                Task::none()
+            }
             Message::Resize(width, height) => {
                 self.window_width = width;
                 self.window_height = height;
                 println!("Resized! New width: {}", self.window_width);
+
+                Task::none()
             }
             Message::NavToHome => {
                 info!("Navigating to Home");
                 self.nav_float_views.current_active = NavFloatViewButton::Home;
+
+                Task::none()
             }
             Message::NavToChat => {
                 info!("Navigating to Chat");
                 self.nav_float_views.current_active = NavFloatViewButton::Chat;
+
+                Task::none()
             }
             Message::NavToSettings => {
                 info!("Navigating to Settings");
                 self.nav_float_views.current_active = NavFloatViewButton::Settings;
+
+                Task::none()
             }
             // This needs to be updated with functionality when a search is entered.
             Message::ContentChanged(new_content) => {
-                self.message_list_float_view.search_query = new_content.to_string();
-                info!("{}", format!("Content changed to {}", new_content));
+                self.message_list_float_view.search_query = new_content;
+                info!("Content changed to...");
+
+                Task::none()
             }
             Message::ChatInputChanged(new_content) => {
                 self.message_float_view.input_message = new_content.to_string();
@@ -87,15 +113,18 @@ impl AppUI {
                         self.message_float_view.input_message
                     )
                 );
+
+                Task::none()
             }
             Message::ContainerPressed(index) => {
                 if let Some(active) = self.active_containers.get_mut(index) {
                     *active = !*active; // Toggle the active state
                 }
+                Task::none()
             }
             Message::SendMessage => {
                 if self.message_float_view.input_message.is_empty() {
-                    return;
+                    return Task::none();
                 }
                 self.message_float_view.chat_message.push(ChatMessage {
                     time: String::from(""),
@@ -109,6 +138,7 @@ impl AppUI {
                 );
 
                 self.message_float_view.input_message = String::new();
+                Task::none()
             }
         }
     }
