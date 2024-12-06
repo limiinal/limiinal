@@ -14,6 +14,7 @@ use iced::widget::{button, center, column, container, image, row, svg, text, tex
 use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
+use once_cell::sync::Lazy;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -138,7 +139,10 @@ impl AppUI {
                 );
 
                 self.message_float_view.input_message = String::new();
-                Task::none()
+                scrollable::snap_to(
+                    self.message_float_view.scroll_id.clone(),
+                    scrollable::RelativeOffset::END,
+                )
             }
         }
     }
@@ -504,6 +508,7 @@ struct MessageFloatView {
     pub height: Length,
     pub input_message: String,
     pub chat_message: Box<Vec<ChatMessage>>,
+    pub scroll_id: Lazy<scrollable::Id>,
 }
 
 impl MessageFloatView {
@@ -517,6 +522,7 @@ impl MessageFloatView {
                     .iter()
                     .map(|msg| row![text(&msg.body).width(Length::Fill),].into()),
             ))
+            .id(self.scroll_id.clone())
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -601,6 +607,7 @@ impl Default for MessageFloatView {
                 },
             ]),
             input_message: String::new(),
+            scroll_id: Lazy::new(iced::widget::scrollable::Id::unique),
         }
     }
 }

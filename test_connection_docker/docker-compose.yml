@@ -1,0 +1,41 @@
+services:
+  relay_server:
+    container_name: relay_server
+    build:
+      context: .
+      dockerfile: relay_server.Dockerfile
+    ports:
+      - "5001:22"
+      - "4001:4001"
+    networks:
+      - relay_net
+
+  client1_node:
+    container_name: client1_node
+    build:
+      context: .
+      dockerfile: client1.Dockerfile
+    ports:
+      - "5002:22"
+    networks:
+      - client1_net
+
+  client2_node:
+    container_name: client2_node
+    build:
+      context: .
+      dockerfile: client2.Dockerfile
+    ports:
+      - "5003:22"
+    networks:
+      - client2_net
+
+
+
+networks:
+  relay_net:
+    driver: bridge
+  client1_net: 
+    driver: bridge
+  client2_net:
+    driver: bridge
