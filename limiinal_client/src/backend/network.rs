@@ -39,6 +39,9 @@ struct Opts {
     /// Peer ID of the remote peer to hole punch to.
     #[clap(long)]
     remote_peer_id: Option<PeerId>,
+
+    #[clap(long, action = clap::ArgAction::SetTrue)]
+    backend_enable: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Parser)]
