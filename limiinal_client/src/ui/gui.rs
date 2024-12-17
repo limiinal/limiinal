@@ -72,12 +72,18 @@ impl AppUI {
             static runtime: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
                 Runtime::new().expect("Failed to create Tokio runtime")
             });
-            tasks.push(Task::perform(async {
-                let mut app_core = AppCore::new(); // Create an instance of AppCore
-                runtime.spawn(async move {
-                    app_core.run().await; // Pass mutable reference
-                }).await.unwrap();
-            }, |_| Message::RunningBackend));
+            tasks.push(Task::perform(
+                async {
+                    let mut app_core = AppCore::new(); // Create an instance of AppCore
+                    runtime
+                        .spawn(async move {
+                            app_core.run().await; // Pass mutable reference
+                        })
+                        .await
+                        .unwrap();
+                },
+                |_| Message::RunningBackend,
+            ));
         }
 
         tasks.push(widget::focus_next());
