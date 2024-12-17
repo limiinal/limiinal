@@ -16,6 +16,7 @@ use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
 use std::env;
+use tokio::runtime::Runtime;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -68,7 +69,15 @@ impl AppUI {
         }
 
         if backend_enable {
-            tasks.push(Task::perform(AppCore::run(), |_| Message::RunningBackend));
+            static runtime: once_cell::sync::Lazy<Runtime> = once_cell::sync::Lazy::new(|| {
+                Runtime::new().expect("Failed to create Tokio runtime")
+            });
+            tasks.push(Task::perform(async {
+                let mut app_core = AppCore::new(); // Create an instance of AppCore
+                runtime.spawn(async move {
+                    app_core.run().await; // Pass mutable reference
+                }).await.unwrap();
+            }, |_| Message::RunningBackend));
         }
 
         tasks.push(widget::focus_next());

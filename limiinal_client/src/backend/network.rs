@@ -61,7 +61,6 @@ impl FromStr for Mode {
     }
 }
 
-#[derive(Default)]
 pub struct AppCore {
     pub backend_thread: Option<task::JoinHandle<()>>,
 }
@@ -73,8 +72,7 @@ impl AppCore {
         }
     }
 
-    pub async fn run() {
-        info!("Backend is running");
+    pub async fn run(&mut self) {
         if let Err(e) = AppCore::start().await {
             tracing::error!("Failed to start AppCore: {:?}", e);
         }
@@ -217,6 +215,16 @@ impl AppCore {
                 swarm
                     .listen_on(opts.relay_address.with(Protocol::P2pCircuit))
                     .unwrap();
+
+                let message = b"Hello, Gossipsub!".to_vec();
+                if swarm
+                    .behaviour_mut()
+                    .gossipsub
+                    .publish(topic.clone(), message)
+                    .is_err()
+                {
+                    tracing::error!("Failed to publish message");
+                }
             }
         }
 
@@ -275,12 +283,12 @@ impl AppCore {
                         SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
                             gossipsub::Event::Subscribed { peer_id, topic },
                         )) => {
-                            println!("{:?} subscribed to {:?}", peer_id, topic);
+                            tracing::info!("{:?} subscribed to {:?}", peer_id, topic);
                         }
                         SwarmEvent::Behaviour(BehaviourEvent::Gossipsub(
                             gossipsub::Event::Unsubscribed { peer_id, topic },
                         )) => {
-                            println!("{:?} unsubscribed from {:?}", peer_id, topic);
+                            tracing::info!("{:?} unsubscribed from {:?}", peer_id, topic);
                         }
                         _ => {}
                     },
@@ -289,9 +297,9 @@ impl AppCore {
                         Ok(Some(text)) => {
                             // Publish the input text to the Gossipsub topic
                             if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic.clone(), text.clone().into_bytes()) {
-                                println!("Failed to publish message: {:?}", e);
+                                tracing::error!("Failed to publish message: {:?}", e);
                             } else {
-                                println!("Published message: {:?}", text);
+                                tracing::info!("Published message: {:?}", text);
                             }
                         }
                         Ok(None) => {
