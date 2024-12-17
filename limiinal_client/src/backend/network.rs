@@ -3,6 +3,7 @@ use std::{
     error::Error,
     hash::{Hash, Hasher},
     str::FromStr,
+    thread,
     time::Duration,
 };
 
@@ -82,7 +83,18 @@ impl AppCore {
             .with_env_filter(EnvFilter::from_default_env())
             .try_init();
 
-        let opts = Opts::parse();
+        let opts = loop {
+            // Try parsing the command-line arguments
+            match Opts::try_parse() {
+                Ok(args) => {
+                    break args;
+                }
+
+                Err(err) => {
+                    thread::sleep(Duration::from_secs(120)); // Sleep to avoid busy CPU usage
+                }
+            }
+        };
 
         #[derive(NetworkBehaviour)]
         struct Behaviour {
