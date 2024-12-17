@@ -19,6 +19,8 @@ use libp2p::{
 use tokio::{io, io::AsyncBufReadExt, select, task};
 use tracing_subscriber::{filter, EnvFilter};
 
+use log::*;
+
 #[derive(Debug, Parser)]
 #[clap(name = "libp2p DCUtR client")]
 struct Opts {
@@ -37,6 +39,9 @@ struct Opts {
     /// Peer ID of the remote peer to hole punch to.
     #[clap(long)]
     remote_peer_id: Option<PeerId>,
+
+    #[clap(long, action = clap::ArgAction::SetTrue)]
+    backend_enable: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Parser)]
@@ -56,6 +61,7 @@ impl FromStr for Mode {
     }
 }
 
+#[derive(Default)]
 pub struct AppCore {
     pub backend_thread: Option<task::JoinHandle<()>>,
 }
@@ -67,7 +73,8 @@ impl AppCore {
         }
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run() {
+        info!("Backend is running");
         if let Err(e) = AppCore::start().await {
             tracing::error!("Failed to start AppCore: {:?}", e);
         }
