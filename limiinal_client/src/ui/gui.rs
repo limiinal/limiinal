@@ -534,11 +534,13 @@ impl MessageFloatView {
         } else {
             scrollable(column(self.chat_message.iter().map(|msg| {
                 row![
-                    text(format!("{}: ", &msg.sender)).width(Length::Shrink)
+                    text(format!("{}: ", &msg.sender))
+                        .width(Length::Shrink)
                         .size(12)
                         .height(Length::Fixed(20.0))
                         .align_y(Alignment::Center),
-                    text(&msg.body).width(Length::FillPortion(9))
+                    text(&msg.body)
+                        .width(Length::FillPortion(9))
                         .height(Length::Fixed(20.0))
                         .align_y(Alignment::Center),
                     text(&msg.time)
