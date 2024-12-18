@@ -5,6 +5,7 @@ use std::fmt::format;
 use crate::backend::network::AppCore;
 
 use chrono::Local;
+use clap::{Arg, Command};
 use iced::border::Radius;
 use iced::keyboard;
 use iced::widget;
@@ -18,6 +19,7 @@ use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
 use once_cell::sync::Lazy;
+use std::env;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -58,14 +60,28 @@ pub enum Message {
 
 impl AppUI {
     pub fn new() -> (Self, Task<Message>) {
+        let mut tasks = vec![];
+
+        let args: Vec<String> = env::args().skip(1).collect();
+        let mut backend_enable = false;
+
+        for arg in &args {
+            if arg == "--backend-enable" {
+                backend_enable = true;
+            }
+        }
+
+        if backend_enable {
+            tasks.push(Task::perform(AppCore::run(), |_| Message::RunningBackend));
+        }
+
+        tasks.push(widget::focus_next());
+
         (
             Self {
                 ..Default::default()
             },
-            Task::batch([
-                //Task::perform(AppCore::run(), |_| Message::RunningBackend),
-                widget::focus_next(),
-            ]),
+            Task::batch(tasks),
         )
     }
 
