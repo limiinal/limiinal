@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use std::fmt::format;
+
 use crate::backend::network::AppCore;
 
+use chrono::Local;
 use clap::{Arg, Command};
 use iced::border::Radius;
 use iced::keyboard;
@@ -15,6 +18,7 @@ use iced::widget::{button, center, column, container, image, row, svg, text, tex
 use iced::widget::{button::Status, Column, Space};
 use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task, Theme};
 use log::info;
+use once_cell::sync::Lazy;
 use std::env;
 
 macro_rules! asset_path {
@@ -143,8 +147,8 @@ impl AppUI {
                     return Task::none();
                 }
                 self.message_float_view.chat_message.push(ChatMessage {
-                    time: String::from(""),
-                    sender: String::from(""),
+                    sender: "Me".to_string(),
+                    time: Local::now().format("%H:%M:%S").to_string(),
                     body: self.message_float_view.input_message.to_string(),
                     is_read: false,
                 });
@@ -154,17 +158,16 @@ impl AppUI {
                 );
 
                 self.message_float_view.input_message = String::new();
-                Task::none()
+                scrollable::snap_to(
+                    self.message_float_view.message_scroll_id.clone(),
+                    scrollable::RelativeOffset::START,
+                )
             }
         }
     }
 
     pub fn view(&self) -> Column<Message> {
-        column![
-            //text!("Welcome to Limiinal!"),
-            self.containers(),
-        ]
-        .padding(10)
+        column![self.containers(),].padding(10)
     }
 
     pub fn containers(&self) -> Element<Message> {
@@ -519,6 +522,7 @@ struct MessageFloatView {
     pub width: Length,
     pub height: Length,
     pub input_message: String,
+    pub message_scroll_id: Lazy<scrollable::Id>,
     pub chat_message: Box<Vec<ChatMessage>>,
 }
 
@@ -528,11 +532,29 @@ impl MessageFloatView {
         let chat_view: Element<_> = if self.chat_message.is_empty() {
             center(text("Start a Conversation")).into()
         } else {
-            scrollable(column(
-                self.chat_message
-                    .iter()
-                    .map(|msg| row![text(&msg.body).width(Length::Fill),].into()),
-            ))
+            scrollable(column(self.chat_message.iter().map(|msg| {
+                row![
+                    text(format!("{}: ", &msg.sender))
+                        .width(Length::Shrink)
+                        .size(12)
+                        .height(Length::Fixed(20.0))
+                        .align_y(Alignment::Center),
+                    text(&msg.body)
+                        .width(Length::FillPortion(9))
+                        .height(Length::Fixed(20.0))
+                        .align_y(Alignment::Center),
+                    text(&msg.time)
+                        .size(8)
+                        .color(Color::from_rgb(0.8, 0.8, 0.8))
+                        .width(Length::FillPortion(1))
+                        .height(Length::Fixed(20.0))
+                        .align_x(Alignment::End)
+                        .align_y(Alignment::Center),
+                ]
+                .into()
+            })))
+            .id(self.message_scroll_id.clone())
+            .anchor_bottom()
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -602,20 +624,8 @@ impl Default for MessageFloatView {
             name: String::from("Message"),
             width: Length::FillPortion(8),
             height: Length::Fill,
-            chat_message: Box::new(vec![
-                ChatMessage {
-                    time: String::from("12:00"),
-                    sender: String::from("John"),
-                    body: String::from("Hello!"),
-                    is_read: false,
-                },
-                ChatMessage {
-                    time: String::from("12:01"),
-                    sender: String::from("Jane"),
-                    body: String::from("Hi!"),
-                    is_read: false,
-                },
-            ]),
+            chat_message: Box::new(Vec::new()),
+            message_scroll_id: Lazy::new(scrollable::Id::unique),
             input_message: String::new(),
         }
     }
