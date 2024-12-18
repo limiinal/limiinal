@@ -1,7 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use std::fmt::format;
+
 use crate::backend::network::AppCore;
 
+use chrono::Local;
 use iced::border::Radius;
 use iced::keyboard;
 use iced::widget;
@@ -60,7 +63,7 @@ impl AppUI {
                 ..Default::default()
             },
             Task::batch([
-                Task::perform(AppCore::run(), |_| Message::RunningBackend),
+                //Task::perform(AppCore::run(), |_| Message::RunningBackend),
                 widget::focus_next(),
             ]),
         )
@@ -128,8 +131,8 @@ impl AppUI {
                     return Task::none();
                 }
                 self.message_float_view.chat_message.push(ChatMessage {
-                    time: String::from(""),
-                    sender: String::from(""),
+                    sender: "Me".to_string(),
+                    time: Local::now().format("%H:%M:%S").to_string(),
                     body: self.message_float_view.input_message.to_string(),
                     is_read: false,
                 });
@@ -148,10 +151,7 @@ impl AppUI {
     }
 
     pub fn view(&self) -> Column<Message> {
-        column![
-            self.containers(),
-        ]
-        .padding(10)
+        column![self.containers(),].padding(10)
     }
 
     pub fn containers(&self) -> Element<Message> {
@@ -513,15 +513,28 @@ struct MessageFloatView {
 impl MessageFloatView {
     fn container_view(&self) -> Element<Message> {
         // chat view
-
         let chat_view: Element<_> = if self.chat_message.is_empty() {
             center(text("Start a Conversation")).into()
         } else {
-            scrollable(column(
-                self.chat_message
-                    .iter()
-                    .map(|msg| row![text(&msg.body).width(Length::Fill),].into()),
-            ))
+            scrollable(column(self.chat_message.iter().map(|msg| {
+                row![
+                    text(format!("{}: ", &msg.sender)).width(Length::Shrink)
+                        .size(12)
+                        .height(Length::Fixed(20.0))
+                        .align_y(Alignment::Center),
+                    text(&msg.body).width(Length::FillPortion(9))
+                        .height(Length::Fixed(20.0))
+                        .align_y(Alignment::Center),
+                    text(&msg.time)
+                        .size(8)
+                        .color(Color::from_rgb(0.8, 0.8, 0.8))
+                        .width(Length::FillPortion(1))
+                        .height(Length::Fixed(20.0))
+                        .align_x(Alignment::End)
+                        .align_y(Alignment::Center),
+                ]
+                .into()
+            })))
             .id(self.message_scroll_id.clone())
             .anchor_bottom()
             .width(Length::Fill)
