@@ -69,15 +69,14 @@ impl AppUI {
         }
 
         if backend_enable {
-            let runtime = Runtime::new().unwrap(); // Panic on failure
+            let runtime = Runtime::new().unwrap();
 
             tasks.push(Task::perform(
                 async move {
-                    let mut app_core = AppCore::new(); // Create an instance of AppCore
-                    let rt_handle = runtime.handle().clone();
-                    rt_handle
+                    let mut app_core = AppCore::new();
+                    runtime
                         .spawn(async move {
-                            app_core.run(&runtime).await; // Pass mutable reference
+                            app_core.run().await;
                         })
                         .await
                         .unwrap();

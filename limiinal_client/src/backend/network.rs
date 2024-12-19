@@ -73,13 +73,13 @@ impl AppCore {
         }
     }
 
-    pub async fn run(&mut self, rt: &Runtime) {
-        if let Err(e) = AppCore::start(rt).await {
+    pub async fn run(&mut self) {
+        if let Err(e) = AppCore::start().await {
             tracing::error!("Failed to start AppCore: {:?}", e);
         }
     }
 
-    async fn start(rt: &Runtime) -> Result<(), Box<dyn Error>> {
+    async fn start() -> Result<(), Box<dyn Error>> {
         let _ = tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_default_env())
             .try_init();
@@ -206,7 +206,7 @@ impl AppCore {
                     break;
                 }
             }
-        };
+        }.await;
 
         println!("The swarm is dialed");
 
@@ -237,7 +237,7 @@ impl AppCore {
             }
         }
 
-        block_on(async {
+        async {
             // Create an asynchronous stdin reader
             let stdin = io::BufReader::new(io::stdin());
             let mut lines = stdin.lines();
@@ -321,7 +321,7 @@ impl AppCore {
                     }
                 }
             }
-        });
+        }.await;
         Ok(())
     }
 }
