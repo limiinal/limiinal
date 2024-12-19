@@ -16,9 +16,9 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     tcp, yamux, PeerId,
 };
+use tokio::runtime::Runtime;
 use tokio::{io, io::AsyncBufReadExt, select, task};
 use tracing_subscriber::{filter, EnvFilter};
-use tokio::runtime::Runtime;
 
 use log::*;
 
@@ -73,13 +73,13 @@ impl AppCore {
         }
     }
 
-    pub async fn run(&mut self) {
-        if let Err(e) = AppCore::start().await {
+    pub async fn run(&mut self, rt: &Runtime) {
+        if let Err(e) = AppCore::start(rt).await {
             tracing::error!("Failed to start AppCore: {:?}", e);
         }
     }
 
-    async fn start() -> Result<(), Box<dyn Error>> {
+    async fn start(rt: &Runtime) -> Result<(), Box<dyn Error>> {
         let _ = tracing_subscriber::fmt()
             .with_env_filter(EnvFilter::from_default_env())
             .try_init();
@@ -137,20 +137,15 @@ impl AppCore {
             .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
             .unwrap();
 
-
-
-
         let topic = gossipsub::IdentTopic::new("example-topic");
         if swarm.behaviour_mut().gossipsub.subscribe(&topic).is_err() {
             tracing::error!("Failed to subscribe to topic");
         }
 
-
         println!("Now blocking");
 
-
         // Wait to listen on all interfaces.
-        block_on(async {
+        async {
             let mut delay = futures_timer::Delay::new(std::time::Duration::from_secs(1)).fuse();
             loop {
                 futures::select! {
@@ -168,17 +163,16 @@ impl AppCore {
                     }
                 }
             }
-        });
+        };
 
         println!("The block has ended");
 
         println!("The swarm begins");
 
-
         // Connect to the relay server. Not for the reservation or relayed connection, but to (a) learn
         // our local public address and (b) enable a freshly started relay to learn its public address.
         swarm.dial(opts.relay_address.clone()).unwrap();
-        rt.block_on(async {
+        async {
             let mut learned_observed_addr = false;
             let mut told_relay_observed_addr = false;
 
@@ -212,7 +206,7 @@ impl AppCore {
                     break;
                 }
             }
-        });
+        };
 
         println!("The swarm is dialed");
 
@@ -250,8 +244,6 @@ impl AppCore {
 
             // Define the Gossipsub topic
             let topic = gossipsub::IdentTopic::new("example-topic");
-
-
 
             loop {
                 tokio::select! {

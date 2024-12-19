@@ -68,24 +68,23 @@ impl AppUI {
             }
         }
 
-    if backend_enable {
-        let runtime = Runtime::new().unwrap(); // Panic on failure
+        if backend_enable {
+            let runtime = Runtime::new().unwrap(); // Panic on failure
 
-        tasks.push(Task::perform(
-            async move {
-                let mut app_core = AppCore::new(); // Create an instance of AppCore
-                runtime
-                    .spawn(async move {
-                        app_core.run().await; // Pass mutable reference
-                    })
-                    .await
-                    .unwrap();
-            },
-            |_| Message::RunningBackend,
-        ));
-    }
-
-
+            tasks.push(Task::perform(
+                async move {
+                    let mut app_core = AppCore::new(); // Create an instance of AppCore
+                    let rt_handle = runtime.handle().clone();
+                    rt_handle
+                        .spawn(async move {
+                            app_core.run(&runtime).await; // Pass mutable reference
+                        })
+                        .await
+                        .unwrap();
+                },
+                |_| Message::RunningBackend,
+            ));
+        }
 
         tasks.push(widget::focus_next());
 
