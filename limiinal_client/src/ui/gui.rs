@@ -20,6 +20,7 @@ use iced::{Alignment, Background, Border, Color, Element, Length, Padding, Task,
 use log::info;
 use once_cell::sync::Lazy;
 use std::env;
+use tokio::runtime::Runtime;
 
 macro_rules! asset_path {
     ($path:expr) => {
@@ -72,7 +73,20 @@ impl AppUI {
         }
 
         if backend_enable {
-            tasks.push(Task::perform(AppCore::run(), |_| Message::RunningBackend));
+            let runtime = Runtime::new().unwrap();
+
+            tasks.push(Task::perform(
+                async move {
+                    let mut app_core = AppCore::new();
+                    runtime
+                        .spawn(async move {
+                            app_core.run().await;
+                        })
+                        .await
+                        .unwrap();
+                },
+                |_| Message::RunningBackend,
+            ));
         }
 
         tasks.push(widget::focus_next());
